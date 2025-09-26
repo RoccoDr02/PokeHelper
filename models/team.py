@@ -1,4 +1,3 @@
-# models/team.py
 class Team:
     def __init__(self, name: str, game_version: str = "platinum"):
         self.name = name

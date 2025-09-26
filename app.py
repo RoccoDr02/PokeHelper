@@ -204,6 +204,33 @@ class TeamEditor:
             "weaknesses": data.get("weaknesses", [])
         }
 
+    def analyze_team(self):
+        if not any(self.team_data):
+            return "Kein Team vorhanden."
+
+        all_weaknesses = []
+        all_strengths = []
+        move_types = set()
+
+        for poke in self.team_data:
+            if poke:
+                all_weaknesses.extend(poke.get("weaknesses", []))
+                all_strengths.extend(poke.get("strengths", []))
+                # Extrahiere Move-Typen (später aus DB)
+                # move_types.update(...)
+
+        # Zähle häufige Schwächen
+        from collections import Counter
+        weakness_counts = Counter(all_weaknesses)
+        critical_weaknesses = [typ for typ, count in weakness_counts.items() if count >= 3]
+
+        report = {
+            "critical_weaknesses": critical_weaknesses,
+            "coverage": list(set(all_strengths)),
+            "team_size": sum(1 for p in self.team_data if p)
+        }
+        return report
+
     # ===== GUI-HILFSFUNKTIONEN =====
     def update_text_font(self, label, frame):
         text_height = int(frame.winfo_height() * 0.55)
@@ -274,6 +301,10 @@ class TeamEditor:
             if data:
                 self.team_data[slot] = data
                 self.root.after(0, self.update_team_display)
+            else:
+                self.team_data[slot] = None
+                # Zeige Fehler in stats_label
+                self.stats_labels[slot].config(text="❌ Pokémon nicht gefunden!", fg="red")
 
         threading.Thread(target=load_data, daemon=True).start()
 
