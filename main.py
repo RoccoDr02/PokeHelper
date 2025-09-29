@@ -1,5 +1,4 @@
 # main.py
-
 import tkinter as tk
 from core.database import Database
 from core.pokemon_service import PokemonService
