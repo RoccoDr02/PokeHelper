@@ -50,7 +50,7 @@ class AIAdvisor:
         {json.dumps(team_data, indent=2, ensure_ascii=False)}
 
         Gib präzise Tipps:
-        - Wo kann der Spieler fehlende Pokémon in {team.game_version} fangen?
+        - Wo kann der Spieler fehlende Pokémon in {self.game_version} fangen?
         - Welche Pokémon fehlen gegen typische Gegner in dieser Version?
         - Sollte das Moveset angepasst werden?
         """

@@ -58,8 +58,7 @@ class PokemonService:
         self.db = db  # ← Speichert die Database-Instanz
 
     def fetch_pokemon(self, name, level, game_version):
-        # 🔑 KORREKTUR 1: Nutze self.db.db_path statt self.db_path
-        conn = sqlite3.connect(self.db.db_path)  # ← So geht's!
+        conn = sqlite3.connect(self.db.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT raw_data FROM pokemon WHERE name = ?", (name.lower(),))
         row = cursor.fetchone()
@@ -69,40 +68,49 @@ class PokemonService:
             raise ValueError(f"Pokémon '{name}' nicht gefunden.")
 
         data = json.loads(row[0])
-
-        # 2. Extrahiere Typen
         types = data.get("types", [])
-
-        # 🔑 KORREKTUR 2: Berechne Stärken/Schwächen dynamisch (nicht aus JSON)
         strengths = _calculate_strengths(types)
         weaknesses = _calculate_weaknesses(types)
 
-        # 3. Extrahiere Moves für die Version
+        # 🔥 Korrekte Move-Logik mit Level + Version
         moves = []
         for move_entry in data.get("moves", []):
+            move_name = move_entry.get("name")
+            if not move_name:
+                continue
             for method in move_entry.get("learn_methods", []):
-                # Prüfe BEIDE möglichen Felder
-                if (method.get("version_group") == game_version or 
-                    method.get("version") == game_version):
-                    moves.append(move_entry["name"])
-                    break  # Einmal reicht
+                # Nur Level-Up-Moves berücksichtigen (optional: du kannst "machine" etc. später hinzufügen)
+                if method.get("method") != "level-up":
+                    continue
 
-        # 4. Extrahiere Fundorte für die Version
+                move_level = method.get("level", 999)
+                if move_level > level:
+                    continue  # Noch nicht gelernt
+
+                version_group = method.get("version_group", "")
+                # ✅ Prüfe: Ist game_version Teil der version_group?
+                if game_version in version_group:
+                    moves.append(move_name)
+                    break  # Nur einmal pro Move
+
+        # Optional: Max. 4 Moves (wie im echten Spiel)
+        moves = moves[:4]
+
+        # Fundorte (wie vorher)
         locations = []
         for encounter in data.get("encounters", []):
             for detail in encounter.get("version_details", []):
                 if detail.get("version") == game_version:
-                    locations.append(encounter["location"])
+                    locations.append(encounter.get("location", "Unbekannt"))
                     break
 
-        # 5. Gib ein Pokemon-Objekt zurück (wie in deinem Team erwartet)
         return Pokemon(
             name=data["name"],
             level=level,
             types=types,
-            moves=moves[:4],  # Max. 4 Moves anzeigen
+            moves=moves,
             image_path=data.get("image_path"),
             strengths=strengths,
             weaknesses=weaknesses,
-            locations=locations  # Optional: falls du es brauchst
+            locations=locations
         )

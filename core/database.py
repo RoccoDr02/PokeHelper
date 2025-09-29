@@ -15,11 +15,11 @@ class Database:
             for row in cursor.fetchall():
                 try:
                     data = json.loads(row[0])
-                    # Moves: version_group
+                    """# Moves: version_group
                     for move in data.get("moves", []):
                         for method in move.get("learn_methods", []):
                             v = method.get("version_group")
-                            if v: versions.add(v)
+                            if v: versions.add(v)"""
                     # Encounters: version
                     for enc in data.get("encounters", []):
                         for detail in enc.get("version_details", []):
@@ -52,27 +52,45 @@ class Database:
         finally:
             conn.close()
 
-    def get_moves_for_pokemon(self, name: str, version_group: str, level: int):
+    def get_moves_for_pokemon(self, name: str, version: str, level: int):
+        # Normalisiere die gesuchte Version
+        search_version = version.lower().replace(" ", "-")
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT raw_data FROM pokemon WHERE name = ?", (name.lower(),))
             row = cursor.fetchone()
             if not row:
+                print(f"⚠️ Pokémon {name} nicht gefunden!")
                 return []
+
             data = json.loads(row[0])
             valid_moves = []
+
             for move_entry in data.get("moves", []):
                 move_name = move_entry.get("name", "unknown")
                 for method in move_entry.get("learn_methods", []):
-                    if (method.get("method") == "level-up" and
-                        method.get("version_group") == version_group and
-                        method.get("level", 999) <= level):
+                    method_type = method.get("method")
+                    method_level = method.get("level", 999)
+                    version_group = method.get("version_group", "")
+
+                    # Nur Level-Up-Moves (du kannst das erweitern!)
+                    if method_type != "level-up":
+                        continue
+                    if method_level > level:
+                        continue
+
+                    # Prüfe, ob die Version im version_group enthalten ist (case-insensitive)
+                    if search_version in version_group.lower():
                         valid_moves.append(move_name)
-                        break
+                        break  # Nur einmal pro Move
+
+            print(f"✅ Gefundene Moves für {name} (Version: {version}, Level: {level}): {valid_moves}")
             return valid_moves
+
         except Exception as e:
-            print(f"Move-Fehler bei {name}: {e}")
+            print(f"❌ Move-Fehler bei {name}: {e}")
             return []
         finally:
             conn.close()
