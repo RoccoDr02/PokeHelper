@@ -1,18 +1,42 @@
+# core/database.py
 import sqlite3
 import json
 
 class Database:
     def __init__(self, db_path: str):
-        self.db_path = db_path
+        self.db_path = db_path  # ← Keine Verbindung hier!
+
+    def get_all_game_versions(self):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        versions = set()
+        try:
+            cursor.execute("SELECT raw_data FROM pokemon")
+            for row in cursor.fetchall():
+                try:
+                    data = json.loads(row[0])
+                    # Moves: version_group
+                    for move in data.get("moves", []):
+                        for method in move.get("learn_methods", []):
+                            v = method.get("version_group")
+                            if v: versions.add(v)
+                    # Encounters: version
+                    for enc in data.get("encounters", []):
+                        for detail in enc.get("version_details", []):
+                            v = detail.get("version")
+                            if v: versions.add(v)
+                except:
+                    continue
+        finally:
+            conn.close()
+        return sorted(versions) or ["platinum"]
 
     def get_pokemon_by_name(self, name: str):
-        """Holt Basisdaten eines Pokémon aus der DB."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
             cursor.execute("SELECT raw_data FROM pokemon WHERE name = ?", (name.lower(),))
             row = cursor.fetchone()
-            conn.close()
             if row:
                 data = json.loads(row[0])
                 return PokemonData(
@@ -25,39 +49,67 @@ class Database:
         except Exception as e:
             print(f"DB-Fehler bei {name}: {e}")
             return None
+        finally:
+            conn.close()
 
     def get_moves_for_pokemon(self, name: str, version_group: str, level: int):
-        """Filtert Moves nach Version und Level."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
             cursor.execute("SELECT raw_data FROM pokemon WHERE name = ?", (name.lower(),))
             row = cursor.fetchone()
-            conn.close()
             if not row:
                 return []
-
             data = json.loads(row[0])
             valid_moves = []
             for move_entry in data.get("moves", []):
                 move_name = move_entry.get("name", "unknown")
-                learned_in_version = False
-
                 for method in move_entry.get("learn_methods", []):
                     if (method.get("method") == "level-up" and
-                            method.get("version_group") == version_group and
-                            method.get("level", 999) <= level):
-                        learned_in_version = True
+                        method.get("version_group") == version_group and
+                        method.get("level", 999) <= level):
+                        valid_moves.append(move_name)
                         break
-
-                if learned_in_version:
-                    valid_moves.append(move_name)
-
             return valid_moves
         except Exception as e:
             print(f"Move-Fehler bei {name}: {e}")
             return []
+        finally:
+            conn.close()
 
+    def get_encounters_for_version(self, pokemon_name: str, version: str):
+        """
+        Gibt eine Liste von Orten zurück, an denen das Pokémon in der angegebenen Version vorkommt.
+        Beispiel: ["Kraftwerk", "Route 2"]
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT raw_data FROM pokemon WHERE name = ?", (pokemon_name.lower(),))
+            row = cursor.fetchone()
+            if not row:
+                return []
+
+            data = json.loads(row[0])
+            locations = []
+
+            for encounter in data.get("encounters", []):
+                location_name = encounter.get("location", "Unbekannter Ort")
+                version_details = encounter.get("version_details", [])
+
+                # Prüfe, ob die gewünschte Version in version_details enthalten ist
+                for detail in version_details:
+                    if detail.get("version") == version:
+                        locations.append(location_name)
+                        break  # Ort nur einmal hinzufügen, auch wenn mehrere Methoden existieren
+
+            return list(set(locations))  # Entferne Duplikate
+
+        except Exception as e:
+            print(f"Fehler beim Laden der Encounters für {pokemon_name} ({version}): {e}")
+            return []
+        finally:
+            conn.close()
 
 class PokemonData:
     def __init__(self, name, types, image_path, locations):

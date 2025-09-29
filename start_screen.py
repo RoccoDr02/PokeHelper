@@ -1,11 +1,17 @@
 import tkinter as tk
+from core.database import Database
 
 class StartScreen:
     def __init__(self, root, on_create_team, on_load_team):
         self.root = root
+        self.db = Database("all_pokedex.db")
         self.on_create_team = on_create_team
         self.setup_ui()
         self.on_load_team = on_load_team
+
+        self.versions = self.db.get_all_game_versions()
+
+        self.create_version_selector()
 
     def setup_ui(self):
         self.root.title("Pokémon Team Builder")
@@ -22,9 +28,6 @@ class StartScreen:
             font=("Helvetica", 12), fg="white", bg="#222222"
         ).pack()
 
-        self.version_var = tk.StringVar(value="platinum")
-        versions = ["platinum", "diamond", "pearl", "scarlet", "violet", "sword", "shield", "black-2-white-2"]
-        tk.OptionMenu(self.root, self.version_var, *versions).pack(pady=10)
 
         tk.Button(
             self.root, text="✨ Neues Team erstellen",
@@ -39,6 +42,13 @@ class StartScreen:
             bg="#558855", fg="white", font=("Helvetica", 12, "bold"),
             padx=20, pady=8
         ).pack(pady=20)
+
+    def create_version_selector(self):
+        tk.Label(self.root, text="Wähle eine Spielversion:").pack(pady=10)
+
+        self.version_var = tk.StringVar(value=self.versions[0] if self.versions else "platinum")
+        versions_menu = tk.OptionMenu(self.root, self.version_var, *self.versions)
+        versions_menu.pack(pady=5)
 
     def _create_new_team(self):
         version = self.version_var.get()

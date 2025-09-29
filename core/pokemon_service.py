@@ -1,5 +1,8 @@
+# core/pokemon_service.py
 from models.pokemon import Pokemon
 from core.database import Database
+import sqlite3
+import json  # ← WICHTIG: json importieren!
 
 # ===== Typ-Effektivitäts-Tabelle =====
 TYPE_CHART = {
@@ -52,26 +55,54 @@ def _calculate_strengths(types):
 
 class PokemonService:
     def __init__(self, db: Database):
-        self.db = db
+        self.db = db  # ← Speichert die Database-Instanz
 
-    def fetch_pokemon(self, name: str, level: int, game_version: str) -> Pokemon:
-        base = self.db.get_pokemon_by_name(name)
-        if not base:
-            raise ValueError(f"Pokémon '{name}' nicht gefunden")
+    def fetch_pokemon(self, name, level, game_version):
+        # 🔑 KORREKTUR 1: Nutze self.db.db_path statt self.db_path
+        conn = sqlite3.connect(self.db.db_path)  # ← So geht's!
+        cursor = conn.cursor()
+        cursor.execute("SELECT raw_data FROM pokemon WHERE name = ?", (name.lower(),))
+        row = cursor.fetchone()
+        conn.close()
 
-        moves = self.db.get_moves_for_pokemon(name, game_version, level)
-        types = base.types
+        if not row:
+            raise ValueError(f"Pokémon '{name}' nicht gefunden.")
 
-        weaknesses = _calculate_weaknesses(types)
+        data = json.loads(row[0])
+
+        # 2. Extrahiere Typen
+        types = data.get("types", [])
+
+        # 🔑 KORREKTUR 2: Berechne Stärken/Schwächen dynamisch (nicht aus JSON)
         strengths = _calculate_strengths(types)
+        weaknesses = _calculate_weaknesses(types)
 
+        # 3. Extrahiere Moves für die Version
+        moves = []
+        for move_entry in data.get("moves", []):
+            for method in move_entry.get("learn_methods", []):
+                # Prüfe BEIDE möglichen Felder
+                if (method.get("version_group") == game_version or 
+                    method.get("version") == game_version):
+                    moves.append(move_entry["name"])
+                    break  # Einmal reicht
+
+        # 4. Extrahiere Fundorte für die Version
+        locations = []
+        for encounter in data.get("encounters", []):
+            for detail in encounter.get("version_details", []):
+                if detail.get("version") == game_version:
+                    locations.append(encounter["location"])
+                    break
+
+        # 5. Gib ein Pokemon-Objekt zurück (wie in deinem Team erwartet)
         return Pokemon(
-            name=name,
+            name=data["name"],
             level=level,
             types=types,
-            moves=moves,
-            image_path=base.image_path,
-            locations=base.locations,
+            moves=moves[:4],  # Max. 4 Moves anzeigen
+            image_path=data.get("image_path"),
             strengths=strengths,
-            weaknesses=weaknesses
+            weaknesses=weaknesses,
+            locations=locations  # Optional: falls du es brauchst
         )

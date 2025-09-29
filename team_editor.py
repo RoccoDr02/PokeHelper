@@ -169,7 +169,7 @@ class TeamEditor:
         def query_ai():
             try:
                 db = self.pokemon_service.db
-                advisor = AIAdvisor(db)
+                advisor = AIAdvisor(db, game_version=self.game_version)
 
                 from models.team import Team
                 from models.pokemon import Pokemon
@@ -185,6 +185,8 @@ class TeamEditor:
                             strengths=p.get("strengths", []),
                             weaknesses=p.get("weaknesses", [])
                         ))
+
+                answer = advisor.suggest_team_improvements(team_obj)
 
                 prompt = f"{question}\nAktuelles Team: {[p.name for p in team_obj.pokemon]}"
                 response = advisor.client.chat.completions.create(
@@ -252,7 +254,7 @@ class TeamEditor:
                 self.root.after(0, self.update_team_display)
 
             except ValueError as e:
-                self.root.after(0, lambda: self._show_error(slot, str(e)))
+                self.root.after(0, lambda e=e: self._show_error(slot, str(e)))
 
         threading.Thread(target=load_data, daemon=True).start()
 
@@ -301,7 +303,7 @@ class TeamEditor:
                     f"Strengths: {', '.join(strengths) if strengths else '-'}\n"
                     f"Weaknesses: {', '.join(weaknesses) if weaknesses else '-'}"
                 )
-                stats_label.config(text=stats_text)
+                stats_label.config(text=stats_text, anchor="nw", justify="left")
                 self.update_text_font(stats_label, frame)
             else:
                 img_label.configure(image="")
