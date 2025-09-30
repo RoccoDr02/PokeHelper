@@ -114,3 +114,17 @@ class PokemonService:
             weaknesses=weaknesses,
             locations=locations
         )
+
+    def get_all_pokemon_names(self):
+        """Gibt eine Liste aller Pokémon-Namen (kleingeschrieben) zurück."""
+        if not hasattr(self, '_all_pokemon_names_cache'):
+            conn = sqlite3.connect(self.db.db_path)
+            cursor = conn.cursor()
+            try:
+                # Lese direkt aus der 'name'-Spalte – kein JSON nötig!
+                cursor.execute("SELECT name FROM pokemon WHERE name IS NOT NULL AND name != ''")
+                names = [row[0].lower() for row in cursor.fetchall() if row[0]]
+                self._all_pokemon_names_cache = sorted(set(names))
+            finally:
+                conn.close()
+        return self._all_pokemon_names_cache
