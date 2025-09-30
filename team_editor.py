@@ -17,10 +17,16 @@ class TeamEditor:
         self.root = root
         self.game_version = game_version.lower().strip()
         self.pokemon_service = pokemon_service
+        self.all_pokemon_names = [
+            name.lower() for name in self.pokemon_service.get_all_pokemon_names()
+        ]
         self.db = db
         self.team_data = [None] * 6
         self.resize_job = None
         self.setup_ui()
+
+        self.root.after(100, self.update_team_display)
+        self.root.after(150, self.actually_resize)
 
     def setup_ui(self):
         self.root.title(f"Pokémon Team – {self.game_version.title()}")
@@ -28,9 +34,9 @@ class TeamEditor:
         self.root.configure(bg="#333333")
 
         # Layout Rows/Columns
-        self.root.rowconfigure(0, weight=3)
-        self.root.rowconfigure(1, weight=0)
-        self.root.rowconfigure(2, weight=1)
+        self.root.rowconfigure(0, weight=1) # Pokemon felder
+        self.root.rowconfigure(1, weight=0) # Eingabezeile
+        self.root.rowconfigure(2, weight=0) # Antwortfeld
         self.root.columnconfigure(0, weight=1)
 
         # Team-Grid Container
@@ -75,6 +81,12 @@ class TeamEditor:
                 name_entry = tk.Entry(input_frame, width=12)
                 name_entry.grid(row=0, column=1, padx=3)
 
+                AutocompleteEntry(
+                    entry=name_entry,
+                    all_names=self.all_pokemon_names,
+                    on_select=lambda name, s=idx: self._on_pokemon_selected(s, name)
+                )
+
                 tk.Label(input_frame, text="Level:", bg="#444444", fg="white").grid(row=0, column=2)
                 level_entry = tk.Entry(input_frame, width=5)
                 level_entry.grid(row=0, column=3, padx=3)
@@ -117,18 +129,13 @@ class TeamEditor:
 
         self.advice_entry.bind("<Return>", on_enter)
 
-        self.ask_button = tk.Button(
-            self.advice_input_frame, text="Frage stellen",
-            command=self.ask_ai_advisor,
-            bg="#4455AA", fg="white"
-        )
-        self.ask_button.pack(side="right", padx=5)
 
         # Antwortfeld (ScrolledText)
         self.advice_frame = tk.Frame(self.root, bg="#222222", height=50)
         self.advice_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
         self.advice_frame.pack_propagate(False)
-
+        self.advice_frame.grid_propagate(False)
+        self.advice_frame.grid_remove()
 
 
         self.advice_text = scrolledtext.ScrolledText(
@@ -164,11 +171,24 @@ class TeamEditor:
     def toggle_advisor(self):
         if self.advice_input_frame.winfo_ismapped():
             self.advice_input_frame.grid_remove()
+            self.advice_frame.grid_remove()
             self.set_answer("Team Tipps werden hier angezeigt")
+
+            self.root.rowconfigure(0, weight=1)
+            self.root.rowconfigure(1, weight=0)
+            self.root.rowconfigure(2, weight=0)
         else:
             self.advice_input_frame.grid()
+            self.advice_frame.grid()
             self.set_answer("Stelle eine Frage an Prof. Eich...")
             self.advice_entry.focus_set()
+
+            self.root.rowconfigure(0, weight=3)
+            self.root.rowconfigure(1, weight=0)
+            self.root.rowconfigure(2, weight=1)
+
+            self.root.update_idletasks()
+            self.on_resize(None)
 
     # AI-Frage stellen
     def ask_ai_advisor(self):
@@ -176,6 +196,8 @@ class TeamEditor:
         if not question:
             messagebox.showwarning("Leere Frage", "Bitte gib eine Frage ein.")
             return
+
+        self.advice_entry.delete(0, tk.END)
 
         self.set_answer("💡 Denke nach...")
 
@@ -230,7 +252,7 @@ class TeamEditor:
             try:
                 level = int(self.level_entries[slot].get())
             except ValueError:
-                level = 100
+                level = 1
 
             try:
                 pokemon_obj = self.pokemon_service.fetch_pokemon(
@@ -264,6 +286,9 @@ class TeamEditor:
     # Update Anzeige
     def update_team_display(self):
         for idx, frame in enumerate(self.team_frames):
+            if frame.winfo_width() <= 1 or frame.winfo_height() <= 1:
+                continue
+
             data = self.team_data[idx]
             img_label = self.img_labels[idx]
             stats_label = self.stats_labels[idx]
@@ -360,3 +385,130 @@ class TeamEditor:
             tkinter.messagebox.showinfo("Gespeichert", f"Team '{team_name}' wurde gespeichert!")
         except Exception as e:
             tkinter.messagebox.showerror("Fehler", f"Speichern fehlgeschlagen:\n{e}")
+
+    def _on_pokemon_selected(self, slot, name):
+        """Wird aufgerufen, wenn ein Name per Autocomplete ausgewählt wurde."""
+        self.name_entries[slot].delete(0, "end")
+        self.name_entries[slot].insert(0, name)
+
+
+
+class AutocompleteEntry:
+    def __init__(self, entry, all_names, on_select=None):
+        self.entry = entry
+        self.all_names = all_names
+        self.on_select = on_select
+        self.listbox = None
+        self.window = None
+
+        self.entry.bind("<KeyRelease>", self.on_keyrelease)
+        self.entry.bind("<FocusOut>", self.on_focusout)
+        self.entry.bind("<Return>", self.on_return)
+
+    def on_keyrelease(self, event):
+        if event.keysym in ("Up", "Down", "Return", "Escape", "Tab", "Shift_L", "Shift_R", "Control_L", "Control_R"):
+            return
+
+        value = self.entry.get().strip().lower()
+        if len(value) < 1:  # Mindestens 1 Buchstabe
+            self.hide_list()
+            return
+
+        matches = [name for name in self.all_names if name.startswith(value)]
+        if matches:
+            self.show_list(matches[:10])
+        else:
+            self.hide_list()
+
+    def show_list(self, matches):
+        self.hide_list()
+
+        x = self.entry.winfo_rootx()
+        y = self.entry.winfo_rooty() + self.entry.winfo_height()
+        width = max(self.entry.winfo_width(), 120)  # Mindestbreite
+
+        self.window = tk.Toplevel(self.entry)
+        self.window.wm_overrideredirect(True)
+        self.window.wm_geometry(f"{width}x{min(len(matches) * 20, 200)}+{x}+{y}")
+        self.window.wm_attributes("-topmost", True)
+        # Wichtig: Kein Fokus auf das Fenster!
+        self.window.bind("<FocusOut>", self.on_list_focusout)
+
+        self.listbox = tk.Listbox(
+            self.window,
+            bg="#444444",
+            fg="white",
+            selectbackground="#5555AA",
+            activestyle="none",
+            font=("Helvetica", 10),
+            takefocus=False  # ← verhindert Fokus-Diebstahl
+        )
+        self.listbox.pack(fill="both", expand=True)
+
+        for name in matches:
+            self.listbox.insert("end", name.title())
+
+        self.listbox.bind("<ButtonRelease-1>", self.on_list_click)
+        self.listbox.bind("<Return>", self.on_list_select)
+        self.listbox.bind("<Up>", self.on_arrow_key)
+        self.listbox.bind("<Down>", self.on_arrow_key)
+        self.listbox.selection_set(0)
+        # NICHT: self.listbox.focus() ← das stiehlt den Fokus!
+
+    def hide_list(self):
+        if self.window:
+            self.window.destroy()
+            self.window = None
+            self.listbox = None
+
+    def on_list_click(self, event):
+        self.select_item()
+
+    def on_return(self, event):
+        if self.listbox and self.listbox.curselection():
+            self.select_item()
+            return "break"
+
+    def on_list_select(self, event):
+        self.select_item()
+
+    def on_arrow_key(self, event):
+        if not self.listbox:
+            return
+        sel = self.listbox.curselection()
+        index = sel[0] if sel else 0
+        if event.keysym == "Up" and index > 0:
+            index -= 1
+        elif event.keysym == "Down" and index < self.listbox.size() - 1:
+            index += 1
+        self.listbox.selection_clear(0, "end")
+        self.listbox.selection_set(index)
+        return "break"
+
+    def select_item(self):
+        if self.listbox and self.listbox.curselection():
+            selection = self.listbox.get(self.listbox.curselection())
+            self.entry.delete(0, "end")
+            self.entry.insert(0, selection)
+            if self.on_select:
+                self.on_select(selection)
+        self.hide_list()
+        self.entry.focus_set()  # Fokus zurück zum Entry
+
+    def on_focusout(self, event):
+        # Verzögerung, um Klick auf Listbox zu erkennen
+        self.entry.after(150, self.check_focus)
+
+    def on_list_focusout(self, event):
+        # Wenn das Dropdown den Fokus verliert, prüfen
+        self.entry.after(150, self.check_focus)
+
+    def check_focus(self):
+        if not self.window:
+            return
+        # Prüfe, ob Fokus noch im Entry oder im Dropdown ist
+        current_focus = self.entry.focus_get()
+        if current_focus == self.entry or (self.listbox and current_focus == self.listbox):
+            return  # Alles gut – nicht schließen
+        # Sonst: schließen
+        self.hide_list()
