@@ -1,3 +1,5 @@
+#Alte version ncht mehr wirklich nützlich
+
 import tkinter as tk
 from io import BytesIO
 import requests
