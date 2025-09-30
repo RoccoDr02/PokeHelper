@@ -7,30 +7,33 @@ import os
 import json
 import tkinter.simpledialog
 import tkinter.messagebox
-from core.ai_advisor import AIAdvisor
 from tkinter import messagebox
+import tkinter.scrolledtext as scrolledtext
+from core.ai_advisor import AIAdvisor
+from models.team import Team
 
 class TeamEditor:
-    def __init__(self, root, game_version, pokemon_service):
+    def __init__(self, root, game_version, pokemon_service, db):
         self.root = root
-        self.game_version = game_version
+        self.game_version = game_version.lower().strip()
         self.pokemon_service = pokemon_service
+        self.db = db
         self.team_data = [None] * 6
         self.resize_job = None
         self.setup_ui()
 
     def setup_ui(self):
         self.root.title(f"Pokémon Team – {self.game_version.title()}")
-        self.root.geometry("1400x900")  # Größerer Fensterrahmen
+        self.root.geometry("1400x900")
         self.root.configure(bg="#333333")
 
-        # Nur eine Spalte: Team + AI-Leiste + Antwortfeld
-        self.root.rowconfigure(0, weight=3)  # Team
-        self.root.rowconfigure(1, weight=0)  # AI-Leiste (toggle)
-        self.root.rowconfigure(2, weight=1)  # Antwortfeld
-        self.root.columnconfigure(0, weight=1)  # Nur eine Spalte
+        # Layout Rows/Columns
+        self.root.rowconfigure(0, weight=3)
+        self.root.rowconfigure(1, weight=0)
+        self.root.rowconfigure(2, weight=1)
+        self.root.columnconfigure(0, weight=1)
 
-        # Hauptcontainer für das Team-Grid
+        # Team-Grid Container
         team_container = tk.Frame(self.root, bg="#333333")
         team_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
@@ -46,7 +49,7 @@ class TeamEditor:
         self.stats_labels = []
         self.save_buttons = []
 
-        # Erstelle 6 Pokémon-Slots (2x3)
+        # Pokémon Slots (2x3)
         for i in range(2):
             for j in range(3):
                 idx = i * 3 + j
@@ -64,7 +67,7 @@ class TeamEditor:
                 img_label.place(relx=0.5, rely=0.25, anchor="center")
                 self.img_labels.append(img_label)
 
-                # Eingabefeld für Name/Level + Suchen + Speichern
+                # Input Frame Name/Level + Buttons
                 input_frame = tk.Frame(frame, bg="#444444")
                 input_frame.grid(row=1, column=0, sticky="ew", pady=5, padx=5)
 
@@ -81,7 +84,6 @@ class TeamEditor:
                     command=lambda s=idx: self.change_pokemon(s)
                 ).grid(row=0, column=4, padx=3)
 
-                # Speichern-Button pro Pokémon
                 save_btn = tk.Button(
                     input_frame, text="💾",
                     command=lambda s=idx: self.save_single_pokemon(s),
@@ -93,22 +95,28 @@ class TeamEditor:
                 self.name_entries.append(name_entry)
                 self.level_entries.append(level_entry)
 
-                # Statistik-Anzeige
                 stats_label = tk.Label(frame, text="", bg="#333333", fg="white", justify="left", anchor="n")
                 stats_label.place(relx=0.5, rely=0.75, anchor="center", relwidth=0.9)
                 self.stats_labels.append(stats_label)
 
-        # AI-Advisor-Leiste (initially hidden, 20px hoch)
-        self.advice_input_frame = tk.Frame(self.root, bg="#333333", height=30)  # ~0.8cm
+        # AI-Advisor Input Frame
+        self.advice_input_frame = tk.Frame(self.root, bg="#333333", height=30)
         self.advice_input_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=0)
-        self.advice_input_frame.grid_propagate(False) # Fix Höhe
-        self.advice_input_frame.pack_propagate(False) # Wichtig für Pack!
-        self.advice_input_frame.grid_remove()  # Initial versteckt
+        self.advice_input_frame.grid_propagate(False)
+        self.advice_input_frame.pack_propagate(False)
+        self.advice_input_frame.grid_remove()
 
-        self.advice_entry = tk.Entry(self.advice_input_frame,font=("Arial", 12), bg="#444444", fg="white")
+        self.advice_entry = tk.Entry(self.advice_input_frame, font=("Arial", 12), bg="#444444", fg="white")
         self.advice_entry.pack(side="left", fill="x", expand=True, padx=5)
 
-        # Button "Frage stellen" — nur einmal erstellt!
+        # Enter-Taste binden
+        def on_enter(event):
+            if not (event.state & 0x0001):  # Shift nicht gedrückt
+                self.ask_ai_advisor()
+                return "break"
+
+        self.advice_entry.bind("<Return>", on_enter)
+
         self.ask_button = tk.Button(
             self.advice_input_frame, text="Frage stellen",
             command=self.ask_ai_advisor,
@@ -116,20 +124,24 @@ class TeamEditor:
         )
         self.ask_button.pack(side="right", padx=5)
 
-
-        # Antwortfeld unter der Leiste
-        self.advice_frame = tk.Frame(self.root, bg="#222222")
+        # Antwortfeld (ScrolledText)
+        self.advice_frame = tk.Frame(self.root, bg="#222222", height=50)
         self.advice_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
-        self.advice_frame.grid_propagate(False)  # Damit es nicht kleiner wird
+        self.advice_frame.pack_propagate(False)
 
-        self.advice_label = tk.Label(
+
+
+        self.advice_text = scrolledtext.ScrolledText(
             self.advice_frame,
-            text="Team Tipps werden hier angezeigt",
-            bg="#222222", fg="white", justify="left", anchor="nw"
+            wrap="word",
+            bg="#222222",
+            fg="white",
+            font=("Helvetica", 13),
+            state="disabled"
         )
-        self.advice_label.pack(fill="both", expand=True, padx=5, pady=5)
+        self.advice_text.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # Toggle-Button für AI-Advisor
+        # Toggle-Button für AI
         self.toggle_advisor_btn = tk.Button(
             self.root, text="🔍 Prof. Eich (Tipps)",
             command=self.toggle_advisor,
@@ -138,7 +150,7 @@ class TeamEditor:
         )
         self.toggle_advisor_btn.place(relx=0.85, rely=1.0, x=-20, y=-20, anchor="se")
 
-        # Speichern-Button unten rechts
+        # Team speichern Button
         tk.Button(
             self.root, text="💾 Team speichern",
             command=self.save_team,
@@ -152,57 +164,42 @@ class TeamEditor:
     def toggle_advisor(self):
         if self.advice_input_frame.winfo_ismapped():
             self.advice_input_frame.grid_remove()
-            self.advice_label.config(text="Team Tipps werden hier angezeigt")
+            self.set_answer("Team Tipps werden hier angezeigt")
         else:
             self.advice_input_frame.grid()
-            self.advice_label.config(text="Stelle eine Frage an Prof. Eich...")
-            self.advice_entry.focus_set()  # Automatisch fokusieren
+            self.set_answer("Stelle eine Frage an Prof. Eich...")
+            self.advice_entry.focus_set()
 
     # AI-Frage stellen
     def ask_ai_advisor(self):
         question = self.advice_entry.get().strip()
         if not question:
+            messagebox.showwarning("Leere Frage", "Bitte gib eine Frage ein.")
             return
 
-        self.advice_label.config(text="💡 Denke nach...")
+        self.set_answer("💡 Denke nach...")
 
         def query_ai():
             try:
-                db = self.pokemon_service.db
-                advisor = AIAdvisor(db, game_version=self.game_version)
-
-                from models.team import Team
-                from models.pokemon import Pokemon
-                team_obj = Team(name="Current Team", game_version=self.game_version)
-                for p in self.team_data:
-                    if p:
-                        team_obj.add_pokemon(Pokemon(
-                            name=p["name"],
-                            level=p.get("level", 100),
-                            types=p.get("types", []),
-                            moves=p.get("moves", []),
-                            image_path=p.get("image_path"),
-                            strengths=p.get("strengths", []),
-                            weaknesses=p.get("weaknesses", [])
-                        ))
-
-                answer = advisor.suggest_team_improvements(team_obj)
-
-                prompt = f"{question}\nAktuelles Team: {[p.name for p in team_obj.pokemon]}"
-                response = advisor.client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                answer = response.choices[0].message.content
-
+                team = Team.from_dict_list(self.team_data) if isinstance(self.team_data, list) else self.team_data
+                advisor = AIAdvisor(db=self.db, game_version=self.game_version)
+                answer = advisor.ask_question(team, question)
             except Exception as e:
                 answer = f"Fehler: {e}"
 
-            self.root.after(0, lambda: self.advice_label.config(text=answer))
+            self.root.after(0, lambda: self.set_answer(answer))
 
         threading.Thread(target=query_ai, daemon=True).start()
 
-    # Speichern eines einzelnen Pokémon
+    # Antwort setzen
+    def set_answer(self, answer):
+        self.advice_text.config(state="normal")
+        self.advice_text.delete("1.0", tk.END)
+        self.advice_text.insert(tk.END, answer)
+        self.advice_text.config(state="disabled")
+        self.advice_text.see(tk.END)
+
+    # Pokémon speichern
     def save_single_pokemon(self, slot):
         data = self.team_data[slot]
         if not data:
@@ -224,7 +221,7 @@ class TeamEditor:
 
         messagebox.showinfo("Gespeichert", f" Pokémon '{name}' gespeichert!")
 
-    # ===== POKÉMON-LADELOGIK MIT SERVICE =====
+    # Pokémon laden
     def change_pokemon(self, slot):
         def load_data():
             name = self.name_entries[slot].get().strip()
@@ -244,6 +241,7 @@ class TeamEditor:
 
                 data = {
                     "name": pokemon_obj.name,
+                    "level": level,
                     "types": pokemon_obj.types,
                     "moves": pokemon_obj.moves,
                     "image_path": pokemon_obj.image_path,
@@ -263,7 +261,7 @@ class TeamEditor:
         self.img_labels[slot].configure(image="")
         self.img_labels[slot].image = None
 
-    # ===== ANZEIGE AKTUALISIEREN =====
+    # Update Anzeige
     def update_team_display(self):
         for idx, frame in enumerate(self.team_frames):
             data = self.team_data[idx]
@@ -327,7 +325,7 @@ class TeamEditor:
             self.root.after_cancel(self.resize_job)
         self.resize_job = self.root.after(150, self.actually_resize)
 
-    # ===== TEAM SPEICHERN =====
+    # Team speichern
     def save_team(self):
         team_name = tkinter.simpledialog.askstring("Team speichern", "Name des Teams:")
         if not team_name:

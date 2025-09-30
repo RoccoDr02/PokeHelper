@@ -2,7 +2,7 @@
 from models.pokemon import Pokemon
 from core.database import Database
 import sqlite3
-import json  # ← WICHTIG: json importieren!
+import json
 
 # ===== Typ-Effektivitäts-Tabelle =====
 TYPE_CHART = {

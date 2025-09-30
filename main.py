@@ -16,7 +16,7 @@ def main():
         for widget in root.winfo_children():
             widget.destroy()
         # Übergib den Service an den Editor!
-        TeamEditor(root, game_version, pokemon_service)
+        TeamEditor(root, game_version, pokemon_service, db=db)
 
     StartScreen(root, on_create_team=start_new_team, on_load_team=lambda: None)
     root.mainloop()

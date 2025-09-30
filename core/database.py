@@ -86,7 +86,7 @@ class Database:
                         valid_moves.append(move_name)
                         break  # Nur einmal pro Move
 
-            print(f"✅ Gefundene Moves für {name} (Version: {version}, Level: {level}): {valid_moves}")
+            #print(f"✅ Gefundene Moves für {name} (Version: {version}, Level: {level}): {valid_moves}")
             return valid_moves
 
         except Exception as e:
@@ -96,10 +96,7 @@ class Database:
             conn.close()
 
     def get_encounters_for_version(self, pokemon_name: str, version: str):
-        """
-        Gibt eine Liste von Orten zurück, an denen das Pokémon in der angegebenen Version vorkommt.
-        Beispiel: ["Kraftwerk", "Route 2"]
-        """
+        search_version = version.lower()
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
@@ -113,15 +110,12 @@ class Database:
 
             for encounter in data.get("encounters", []):
                 location_name = encounter.get("location", "Unbekannter Ort")
-                version_details = encounter.get("version_details", [])
-
-                # Prüfe, ob die gewünschte Version in version_details enthalten ist
-                for detail in version_details:
-                    if detail.get("version") == version:
+                for detail in encounter.get("version_details", []):
+                    if detail.get("version", "").lower() == search_version:
                         locations.append(location_name)
-                        break  # Ort nur einmal hinzufügen, auch wenn mehrere Methoden existieren
+                        break
 
-            return list(set(locations))  # Entferne Duplikate
+            return list(dict.fromkeys(locations))  # Reihenfolge erhalten
 
         except Exception as e:
             print(f"Fehler beim Laden der Encounters für {pokemon_name} ({version}): {e}")
