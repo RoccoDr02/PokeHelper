@@ -50,3 +50,7 @@ OPENAI_KEY=dein_api_key
 ```
 python main.py
 ```
+## Hinweis
+
+Dies ist **nicht die finale Version** des Pokémon Team Editors.  
+Das Projekt wird weiterhin aktiv entwickelt und erhält in Zukunft Updates, neue Funktionen und Verbesserungen.
