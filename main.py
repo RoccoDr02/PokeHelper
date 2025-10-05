@@ -18,7 +18,17 @@ def main():
         # Übergib den Service an den Editor!
         TeamEditor(root, game_version, pokemon_service, db=db)
 
-    StartScreen(root, on_create_team=start_new_team, on_load_team=lambda: None)
+    def load_existing_team(team_obj, game_version):
+        for widget in root.winfo_children():
+            widget.destroy()
+        # Übergibt das geladene Team an den Editor
+        TeamEditor(root, game_version, pokemon_service, db=db, team=team_obj)
+
+    StartScreen(
+        root,
+        on_create_team=start_new_team,
+        on_load_team=load_existing_team
+    )
     root.mainloop()
 
 if __name__ == "__main__":

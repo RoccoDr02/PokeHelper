@@ -1,4 +1,7 @@
 # models/team.py
+import os
+import json
+
 class Team:
     def __init__(self, name: str, game_version: str = "platinum", pokemon=None):
         self.name = name
@@ -9,12 +12,59 @@ class Team:
         if len(self.pokemon) < 6:
             self.pokemon.append(pokemon)
 
-    def save_to_db(self, db):
-        db.save_team(self)
+    # ===== JSON Save / Load Funktionen =====
+    SAVE_FOLDER = "teams"  # Ordner für alle Teams
+
+    def save_to_file(self, team_name: str = None):
+        """Speichert das Team als JSON im teams/ Ordner."""
+        if not os.path.exists(self.SAVE_FOLDER):
+            os.makedirs(self.SAVE_FOLDER)
+
+        name_to_save = team_name or self.name
+        filepath = os.path.join(self.SAVE_FOLDER, f"{name_to_save}.json")
+
+        data = self.to_dict()
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"Fehler beim Speichern des Teams '{name_to_save}': {e}")
+            return False
 
     @classmethod
-    def load_from_db(cls, db, team_id):
-        return db.load_team(team_id)
+    def load_from_file(cls, team_name: str):
+        """Lädt ein Team aus dem teams/ Ordner anhand des Namens."""
+        filepath = os.path.join(cls.SAVE_FOLDER, f"{team_name}.json")
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Team '{team_name}' existiert nicht.")
+
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Erstelle Team-Objekt
+        return cls.from_dict_list(
+            data_list=data.get("pokemon", []),
+            name=data.get("name", team_name),
+            game_version=data.get("game_version", "platinum")
+        )
+
+    @classmethod
+    def list_saved_teams(cls):
+        """Gibt eine Liste aller gespeicherten Team-Dateien ohne .json zurück."""
+        if not os.path.exists(cls.SAVE_FOLDER):
+            return []
+        files = [f[:-5] for f in os.listdir(cls.SAVE_FOLDER) if f.endswith(".json")]
+        return sorted(files)
+    # ========================================
+
+    def to_dict(self):
+        """Exportiert das Team als Dict für JSON-Speicherung"""
+        return {
+            "name": self.name,
+            "game_version": self.game_version,
+            "pokemon": [p.to_dict() for p in self.pokemon if p is not None]
+        }
 
     @classmethod
     def from_dict_list(cls, data_list, name: str = "Unbenanntes Team", game_version: str = "platinum"):
@@ -24,14 +74,6 @@ class Team:
             if d:
                 pokemon_objects.append(Pokemon.from_dict(d))
         return cls(name=name, game_version=game_version, pokemon=pokemon_objects)
-
-    def to_dict(self):
-        """Exportiert das Team als Dict für JSON-Speicherung"""
-        return {
-            "name": self.name,
-            "game_version": self.game_version,
-            "pokemon": [p.to_dict() for p in self.pokemon]
-        }
 
 
 class Pokemon:

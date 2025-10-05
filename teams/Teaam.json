@@ -1,0 +1,80 @@
+{
+  "name": "Teaam",
+  "game_version": "alpha-sapphire",
+  "pokemon": [
+    {
+      "name": "pikachu",
+      "level": 5,
+      "types": [
+        "electric"
+      ],
+      "moves": [
+        "tail-whip",
+        "growl",
+        "thunder-shock"
+      ],
+      "image_path": "pokemon_images/pikachu.png",
+      "locations": [
+        "slateport-city-contest-hall",
+        "verdanturf-town-contest-hall",
+        "fallarbor-town-contest-hall",
+        "lilycove-city-contest-hall"
+      ],
+      "strengths": [
+        "grass"
+      ],
+      "weaknesses": [
+        "grass"
+      ]
+    },
+    {
+      "name": "bulbasaur",
+      "level": 5,
+      "types": [
+        "grass",
+        "poison"
+      ],
+      "moves": [
+        "tackle",
+        "growl"
+      ],
+      "image_path": "pokemon_images/bulbasaur.png",
+      "locations": [],
+      "strengths": [
+        "bug",
+        "fairy",
+        "fire",
+        "flying"
+      ],
+      "weaknesses": [
+        "fire",
+        "flying",
+        "bug",
+        "fairy"
+      ]
+    },
+    {
+      "name": "charmander",
+      "level": 5,
+      "types": [
+        "fire"
+      ],
+      "moves": [
+        "scratch",
+        "growl"
+      ],
+      "image_path": "pokemon_images/charmander.png",
+      "locations": [],
+      "strengths": [
+        "rock",
+        "steel",
+        "water"
+      ],
+      "weaknesses": [
+        "water",
+        "rock",
+        "steel"
+      ]
+    }
+  ]
+}
