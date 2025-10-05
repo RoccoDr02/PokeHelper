@@ -10,21 +10,42 @@ import tkinter.messagebox
 from tkinter import messagebox
 import tkinter.scrolledtext as scrolledtext
 from core.ai_advisor import AIAdvisor
-from models.team import Team
+from models.team import Team, Pokemon
+from core.pokemon_service import PokemonService
 
 class TeamEditor:
-    def __init__(self, root, game_version, pokemon_service, db):
+    def __init__(self, root, game_version, pokemon_service, db, team=None):
         self.root = root
-        self.game_version = game_version.lower().strip()
+        self.db = db
         self.pokemon_service = pokemon_service
+
+        # Team setzen: Entweder das geladene Team oder ein neues
+        if team:
+            self.team = team
+            self.game_version = team.game_version
+            # Teamdaten für die Anzeige vorbereiten
+            self.team_data = [p.to_dict() if p else None for p in team.pokemon]
+            while len(self.team_data) < 6:
+                self.team_data.append(None)
+        else:
+            self.game_version = game_version
+            self.team = Team(name="Unbenanntes Team", game_version=self.game_version)
+            self.team_data = [None] * 6
+
+        # Liste aller Pokémon-Namen für Autocomplete
         self.all_pokemon_names = [
             name.lower() for name in self.pokemon_service.get_all_pokemon_names()
         ]
-        self.db = db
-        self.team_data = [None] * 6
+
         self.resize_job = None
+
+        # UI aufbauen
         self.setup_ui()
 
+        # Fenster schließen Event
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        # Anzeige updaten
         self.root.after(100, self.update_team_display)
         self.root.after(150, self.actually_resize)
 
@@ -34,9 +55,9 @@ class TeamEditor:
         self.root.configure(bg="#333333")
 
         # Layout Rows/Columns
-        self.root.rowconfigure(0, weight=1) # Pokemon felder
-        self.root.rowconfigure(1, weight=0) # Eingabezeile
-        self.root.rowconfigure(2, weight=0) # Antwortfeld
+        self.root.rowconfigure(0, weight=1)  # Pokémon-Felder
+        self.root.rowconfigure(1, weight=0)  # Eingabezeile (AI)
+        self.root.rowconfigure(2, weight=0)  # Antwortfeld (AI)
         self.root.columnconfigure(0, weight=1)
 
         # Team-Grid Container
@@ -62,24 +83,31 @@ class TeamEditor:
                 frame = tk.Frame(team_container, bg="#333333", bd=2, relief="raised")
                 frame.grid(row=i, column=j, sticky="nsew", padx=5, pady=5)
                 frame.grid_propagate(False)
-                frame.rowconfigure(0, weight=3)
-                frame.rowconfigure(1, weight=3)
-                frame.rowconfigure(2, weight=3)
-                frame.columnconfigure(0, weight=1)
                 self.team_frames.append(frame)
 
-                # Bildanzeige
+                # Internes Grid: 2 Spalten, 2 Zeilen
+                frame.rowconfigure(0, weight=1)  # Obere Zeile (Name/Level + Bild)
+                frame.rowconfigure(1, weight=2)  # Untere Zeile (Stats)
+                frame.columnconfigure(0, weight=7)  # Linke Spalte: 70%
+                frame.columnconfigure(1, weight=3)  # Rechte Spalte: 30%
+
+                # --- RECHTE SPALTE: BILD (oben rechts) ---
                 img_label = tk.Label(frame, bg="#333333")
-                img_label.place(relx=0.5, rely=0.25, anchor="center")
+                img_label.grid(row=0, column=1, sticky="ne", padx=5, pady=5)
                 self.img_labels.append(img_label)
 
-                # Input Frame Name/Level + Buttons
-                input_frame = tk.Frame(frame, bg="#444444")
-                input_frame.grid(row=1, column=0, sticky="ew", pady=5, padx=5)
+                # --- LINKE SPALTE: OBEN – Name/Level + Buttons (VERTIKAL) ---
+                input_frame = tk.Frame(frame, bg="#333333")
+                input_frame.grid(row=0, column=0, sticky="nw", padx=5, pady=5)
 
-                tk.Label(input_frame, text="Name:", bg="#444444", fg="white").grid(row=0, column=0)
-                name_entry = tk.Entry(input_frame, width=12)
-                name_entry.grid(row=0, column=1, padx=3)
+                # ---- Name-Zeile ----
+                name_row = tk.Frame(input_frame, bg="#333333")
+                name_row.pack(anchor="w", pady=1)
+
+                tk.Label(name_row, text="Name:", bg="#333333", fg="white", font=("Helvetica", 9)).pack(side="left",
+                                                                                                       padx=(2, 4))
+                name_entry = tk.Entry(name_row, width=18, font=("Helvetica", 9))  # etwas breiter
+                name_entry.pack(side="left")
 
                 AutocompleteEntry(
                     entry=name_entry,
@@ -87,28 +115,44 @@ class TeamEditor:
                     on_select=lambda name, s=idx: self._on_pokemon_selected(s, name)
                 )
 
-                tk.Label(input_frame, text="Level:", bg="#444444", fg="white").grid(row=0, column=2)
-                level_entry = tk.Entry(input_frame, width=5)
-                level_entry.grid(row=0, column=3, padx=3)
+                # ---- Level-Zeile ----
+                level_row = tk.Frame(input_frame, bg="#333333")
+                level_row.pack(anchor="w", pady=1)
+
+                tk.Label(level_row, text="Level: ", bg="#333333", fg="white", font=("Helvetica", 9)).pack(side="left",
+                                                                                                         padx=(2, 4))
+                level_entry = tk.Entry(level_row, width=5, font=("Helvetica", 9))
+                level_entry.pack(side="left", padx=(0, 4))
 
                 tk.Button(
-                    input_frame, text="Suchen",
-                    command=lambda s=idx: self.change_pokemon(s)
-                ).grid(row=0, column=4, padx=3)
+                    level_row, text="Suchen",
+                    command=lambda s=idx: self.change_pokemon(s),
+                    font=("Helvetica", 8)
+                ).pack(side="left", padx=(0, 4))
 
                 save_btn = tk.Button(
-                    input_frame, text="💾",
+                    level_row, text="💾",
                     command=lambda s=idx: self.save_single_pokemon(s),
                     bg="#447744", fg="white", font=("Helvetica", 8), width=3
                 )
-                save_btn.grid(row=0, column=5, padx=3)
+                save_btn.pack(side="left")
                 self.save_buttons.append(save_btn)
 
                 self.name_entries.append(name_entry)
                 self.level_entries.append(level_entry)
 
-                stats_label = tk.Label(frame, text="", bg="#333333", fg="white", justify="left", anchor="n")
-                stats_label.place(relx=0.5, rely=0.75, anchor="center", relwidth=0.9)
+                # --- LINKE SPALTE: UNTEN – Stats (Moves, Strengths, Weaknesses) ---
+                stats_label = tk.Label(
+                    frame,
+                    text="",
+                    bg="#333333",
+                    fg="lightgray",
+                    justify="left",
+                    anchor="nw",
+                    font=("Helvetica", 9),
+                    wraplength=200  # passt zur linken Spalte
+                )
+                stats_label.grid(row=1, column=0, sticky="nw", padx=5, pady=5)
                 self.stats_labels.append(stats_label)
 
         # AI-Advisor Input Frame
@@ -118,7 +162,7 @@ class TeamEditor:
         self.advice_input_frame.pack_propagate(False)
         self.advice_input_frame.grid_remove()
 
-        self.advice_entry = tk.Entry(self.advice_input_frame, font=("Arial", 12), bg="#444444", fg="white")
+        self.advice_entry = tk.Entry(self.advice_input_frame, font=("Arial", 12), bg="#333333", fg="white")
         self.advice_entry.pack(side="left", fill="x", expand=True, padx=5)
 
         # Enter-Taste binden
@@ -129,14 +173,12 @@ class TeamEditor:
 
         self.advice_entry.bind("<Return>", on_enter)
 
-
         # Antwortfeld (ScrolledText)
         self.advice_frame = tk.Frame(self.root, bg="#222222", height=50)
         self.advice_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
         self.advice_frame.pack_propagate(False)
         self.advice_frame.grid_propagate(False)
         self.advice_frame.grid_remove()
-
 
         self.advice_text = scrolledtext.ScrolledText(
             self.advice_frame,
@@ -261,16 +303,27 @@ class TeamEditor:
                     game_version=self.game_version
                 )
 
-                data = {
-                    "name": pokemon_obj.name,
-                    "level": level,
-                    "types": pokemon_obj.types,
-                    "moves": pokemon_obj.moves,
-                    "image_path": pokemon_obj.image_path,
-                    "strengths": pokemon_obj.strengths,
-                    "weaknesses": pokemon_obj.weaknesses,
-                }
-                self.team_data[slot] = data
+                # Team-Objekt aktualisieren
+                team_pokemon = Pokemon(
+                    name=pokemon_obj.name,
+                    level=pokemon_obj.level,
+                    types=pokemon_obj.types,
+                    moves=pokemon_obj.moves,
+                    strengths=pokemon_obj.strengths,
+                    weaknesses=pokemon_obj.weaknesses,
+                    image_path=pokemon_obj.image_path,
+                    locations=pokemon_obj.locations
+                )
+
+                self.team_data[slot] = team_pokemon.to_dict()
+
+                if len(self.team.pokemon) > slot:
+                    self.team.pokemon[slot] = team_pokemon
+                else:
+                    while len(self.team.pokemon) <= slot:
+                        self.team.pokemon.append(None)
+                    self.team.pokemon[slot] = team_pokemon
+
                 self.root.after(0, self.update_team_display)
 
             except ValueError as e:
@@ -302,8 +355,10 @@ class TeamEditor:
                         data["img_pil"] = Image.new("RGBA", (80, 80), (50, 50, 50, 255))
 
                 img = data["img_pil"]
-                frame_width = frame.winfo_width()
-                frame_height = int(frame.winfo_height() * 0.45)
+                content_frame = img_label.master  # ← Der Frame, in dem das Bild ist
+                frame_width = content_frame.winfo_width()
+                frame_height = int(content_frame.winfo_height() * 0.4)
+
                 if frame_width > 1 and frame_height > 1:
                     img_ratio = img.width / img.height
                     frame_ratio = frame_width / frame_height
@@ -317,10 +372,12 @@ class TeamEditor:
                     img_tk = ImageTk.PhotoImage(img_resized)
                     img_label.configure(image=img_tk)
                     img_label.image = img_tk
+                    img_label.lift()  # <-- WICHTIG: Nach jedem Update wieder nach vorne!
 
                 strengths = data.get("strengths", [])
                 weaknesses = data.get("weaknesses", [])
                 stats_text = (
+                    f"Level: {data.get('level', 100)}\n"
                     f"Typen: {', '.join(data['types'])}\n"
                     f"Moves: {', '.join(data['moves'])}\n"
                     f"Strengths: {', '.join(strengths) if strengths else '-'}\n"
@@ -350,41 +407,51 @@ class TeamEditor:
             self.root.after_cancel(self.resize_job)
         self.resize_job = self.root.after(150, self.actually_resize)
 
+    def on_close(self):
+        """Wird beim Schließen des Fensters aufgerufen."""
+        if any(self.team_data):
+            if tk.messagebox.askyesno("Team speichern?", "Möchtest du dein aktuelles Team speichern, bevor das Fenster geschlossen wird?"):
+                self.save_team()
+        self.root.destroy()
+
+    def switch_team(self, new_team):
+        """Wechselt zu einem neuen Team und fragt vorher, ob das aktuelle Team gespeichert werden soll."""
+        if any(self.team_data):
+            if tk.messagebox.askyesno("Team speichern", "Möchtest du dein aktuelles Team speichern, bevor das Team gewechselt wird?"):
+                self.save_team()
+        self.load_team_data(new_team)
+        self.update_team_display()
+
+    def load_team_data(self, team):
+        """Füllt die Team-Slots mit einem geladenen Team_Objekt."""
+        for idx, p in enumerate(team.pokemon):
+            if p:
+                self.team_data[idx] = {
+                    "name": p.name,
+                    "level": p.level,
+                    "types": p.types,
+                    "moves": p.moves,
+                    "image_path": p.image_path,
+                    "strengths": getattr(p, "strengths", []),
+                    "weaknesses": getattr(p, "weaknesses", []),
+                }
+                self.name_entries[idx].delete(0, tk.END)
+                self.name_entries[idx].insert(0, p.name)
+                self.level_entries[idx].delete(0, tk.END)
+                self.level_entries[idx].insert(0, str(p.level))
+
     # Team speichern
     def save_team(self):
         team_name = tkinter.simpledialog.askstring("Team speichern", "Name des Teams:")
         if not team_name:
             return
 
-        team_data = {
-            "name": team_name,
-            "game_version": self.game_version,
-            "pokemon": []
-        }
-
-        for i, p in enumerate(self.team_data):
-            if p:
-                level = 100
-                try:
-                    level = int(self.level_entries[i].get())
-                except ValueError:
-                    pass
-                team_data["pokemon"].append({
-                    "name": p["name"],
-                    "level": level,
-                    "types": p["types"],
-                    "moves": p["moves"],
-                    "strengths": p["strengths"],
-                    "weaknesses": p["weaknesses"],
-                    "image_path": p["image_path"]
-                })
-
-        try:
-            with open(f"{team_name}.json", "w", encoding="utf-8") as f:
-                json.dump(team_data, f, indent=2, ensure_ascii=False)
+        self.team.name = team_name
+        success = self.team.save_to_file(team_name)
+        if success:
             tkinter.messagebox.showinfo("Gespeichert", f"Team '{team_name}' wurde gespeichert!")
-        except Exception as e:
-            tkinter.messagebox.showerror("Fehler", f"Speichern fehlgeschlagen:\n{e}")
+        else:
+            tkinter.messagebox.showerror("Fehler", f"Speichern fehlgeschlagen für Team '{team_name}'!")
 
     def _on_pokemon_selected(self, slot, name):
         """Wird aufgerufen, wenn ein Name per Autocomplete ausgewählt wurde."""
@@ -436,7 +503,7 @@ class AutocompleteEntry:
 
         self.listbox = tk.Listbox(
             self.window,
-            bg="#444444",
+            bg="#333333",
             fg="white",
             selectbackground="#5555AA",
             activestyle="none",

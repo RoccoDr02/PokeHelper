@@ -1,5 +1,7 @@
 import tkinter as tk
+from tkinter import messagebox, simpledialog
 from core.database import Database
+from models.team import Team
 
 class StartScreen:
     def __init__(self, root, on_create_team, on_load_team):
@@ -56,4 +58,28 @@ class StartScreen:
 
     def _load_existing_team(self):
         version = self.version_var.get()
-        self.on_load_team(version)
+
+        # Liste aller gespeicherten Teams abrufen
+        saved_teams = Team.list_saved_teams()
+        if not saved_teams:
+            messagebox.showinfo("Keine Teams", "Es sind keine gespeicherten Teams vorhanden.")
+            return
+
+        # Auswahldialog
+        selected_team = simpledialog.askstring(
+            "Team laden",
+            "Welches Team möchtest du laden?\n" + "\n".join(saved_teams)
+        )
+
+        if not selected_team:
+            return  # Abbruch
+
+        if selected_team not in saved_teams:
+            messagebox.showerror("Fehler", f"Team '{selected_team}' existiert nicht.")
+            return
+
+        try:
+            team_obj = Team.load_from_file(selected_team)
+            self.on_load_team(team_obj, version)
+        except Exception as e:
+            messagebox.showerror("Fehler beim Laden", str(e))
