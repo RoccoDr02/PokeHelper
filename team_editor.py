@@ -85,28 +85,25 @@ class TeamEditor:
                 frame.grid_propagate(False)
                 self.team_frames.append(frame)
 
-                # Internes Grid: 2 Spalten, 2 Zeilen
+                # Internes Grid: 3 Zeilen, 2 Spalten
                 frame.rowconfigure(0, weight=1)  # Obere Zeile (Name/Level + Bild)
-                frame.rowconfigure(1, weight=2)  # Untere Zeile (Stats)
+                frame.rowconfigure(1, weight=0)  # Trennlinie (klein)
+                frame.rowconfigure(2, weight=2)  # Untere Zeile (Stats)
                 frame.columnconfigure(0, weight=7)  # Linke Spalte: 70%
                 frame.columnconfigure(1, weight=3)  # Rechte Spalte: 30%
 
-                # --- RECHTE SPALTE: BILD (oben rechts) ---
-                img_label = tk.Label(frame, bg="#333333")
-                img_label.grid(row=0, column=1, sticky="ne", padx=5, pady=5)
-                self.img_labels.append(img_label)
-
-                # --- LINKE SPALTE: OBEN – Name/Level + Buttons (VERTIKAL) ---
+                # --- ZEILE 0: NAME/LEVEL + BILD ---
+                # ---- LINKE SPALTE: Name/Level + Buttons ----
                 input_frame = tk.Frame(frame, bg="#333333")
                 input_frame.grid(row=0, column=0, sticky="nw", padx=5, pady=5)
 
-                # ---- Name-Zeile ----
+                # Name-Zeile
                 name_row = tk.Frame(input_frame, bg="#333333")
                 name_row.pack(anchor="w", pady=1)
 
                 tk.Label(name_row, text="Name:", bg="#333333", fg="white", font=("Helvetica", 9)).pack(side="left",
                                                                                                        padx=(2, 4))
-                name_entry = tk.Entry(name_row, width=18, font=("Helvetica", 9))  # etwas breiter
+                name_entry = tk.Entry(name_row, width=18, font=("Helvetica", 9))
                 name_entry.pack(side="left")
 
                 AutocompleteEntry(
@@ -115,11 +112,11 @@ class TeamEditor:
                     on_select=lambda name, s=idx: self._on_pokemon_selected(s, name)
                 )
 
-                # ---- Level-Zeile ----
+                # Level-Zeile
                 level_row = tk.Frame(input_frame, bg="#333333")
                 level_row.pack(anchor="w", pady=1)
 
-                tk.Label(level_row, text="Level: ", bg="#333333", fg="white", font=("Helvetica", 9)).pack(side="left",
+                tk.Label(level_row, text="Level:  ", bg="#333333", fg="white", font=("Helvetica", 9)).pack(side="left",
                                                                                                          padx=(2, 4))
                 level_entry = tk.Entry(level_row, width=5, font=("Helvetica", 9))
                 level_entry.pack(side="left", padx=(0, 4))
@@ -128,7 +125,7 @@ class TeamEditor:
                     level_row, text="Suchen",
                     command=lambda s=idx: self.change_pokemon(s),
                     font=("Helvetica", 8)
-                ).pack(side="left", padx=(0, 4))
+                ).pack(side="left",anchor="w", pady=1, padx=(0, 4))
 
                 save_btn = tk.Button(
                     level_row, text="💾",
@@ -141,7 +138,16 @@ class TeamEditor:
                 self.name_entries.append(name_entry)
                 self.level_entries.append(level_entry)
 
-                # --- LINKE SPALTE: UNTEN – Stats (Moves, Strengths, Weaknesses) ---
+                # ---- RECHTE SPALTE: BILD ----
+                img_label = tk.Label(frame, bg="#333333")
+                img_label.grid(row=0, column=1, sticky="ne", padx=5, pady=5)
+                self.img_labels.append(img_label)
+
+                # --- ZEILE 1: Trennlinie (leer, aber mit Höhe) ---
+                separator = tk.Frame(frame, bg="#222222", height=2)
+                separator.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+
+                # --- ZEILE 2: STATS (Moves, Strengths, Weaknesses) ---
                 stats_label = tk.Label(
                     frame,
                     text="",
@@ -150,9 +156,9 @@ class TeamEditor:
                     justify="left",
                     anchor="nw",
                     font=("Helvetica", 9),
-                    wraplength=200  # passt zur linken Spalte
+                    wraplength=250
                 )
-                stats_label.grid(row=1, column=0, sticky="nw", padx=5, pady=5)
+                stats_label.grid(row=2, column=0, columnspan=2, sticky="nw", padx=5, pady=5)
                 self.stats_labels.append(stats_label)
 
         # AI-Advisor Input Frame
@@ -355,24 +361,40 @@ class TeamEditor:
                         data["img_pil"] = Image.new("RGBA", (80, 80), (50, 50, 50, 255))
 
                 img = data["img_pil"]
-                content_frame = img_label.master  # ← Der Frame, in dem das Bild ist
-                frame_width = content_frame.winfo_width()
-                frame_height = int(content_frame.winfo_height() * 0.4)
+                frame_width = frame.winfo_width()
+                frame_height = frame.winfo_height()
 
-                if frame_width > 1 and frame_height > 1:
-                    img_ratio = img.width / img.height
-                    frame_ratio = frame_width / frame_height
-                    if frame_ratio > img_ratio:
-                        new_height = frame_height
-                        new_width = int(img_ratio * new_height)
-                    else:
-                        new_width = frame_width
-                        new_height = int(new_width / img_ratio)
-                    img_resized = img.resize((new_width, new_height), Image.LANCZOS)
-                    img_tk = ImageTk.PhotoImage(img_resized)
-                    img_label.configure(image=img_tk)
-                    img_label.image = img_tk
-                    img_label.lift()  # <-- WICHTIG: Nach jedem Update wieder nach vorne!
+                # --- SKALIERUNG FÜR BILD ---
+                max_img_width = int(frame_width * 0.3 * 0.8)  # 30% Breite * 80%
+                max_img_height = int(frame_height * 0.3)  # 30% der Gesamthöhe für Zeile 0
+
+                img_ratio = img.width / img.height
+
+                # Berechne neue Größe
+                if img_ratio > 1:  # Breitformat → begrenze Breite
+                    new_width = min(max_img_width, img.width)
+                    new_height = int(new_width / img_ratio)
+                else:  # Hochformat → begrenze Höhe
+                    new_height = min(max_img_height, img.height)
+                    new_width = int(new_height * img_ratio)
+
+                # Falls zu hoch → korrigiere
+                if new_height > max_img_height:
+                    new_height = max_img_height
+                    new_width = int(new_height * img_ratio)
+
+                # Skalieren
+                img_resized = img.resize((new_width, new_height), Image.LANCZOS)
+
+                # Optional: Kleiner Rand
+                img_padded = Image.new("RGBA", (new_width + 10, new_height + 10), (0, 0, 0, 0))
+                img_padded.paste(img_resized, (5, 5))
+                img_resized = img_padded
+
+                img_tk = ImageTk.PhotoImage(img_resized)
+                img_label = self.img_labels[idx]
+                img_label.configure(image=img_tk)
+                img_label.image = img_tk
 
                 strengths = data.get("strengths", [])
                 weaknesses = data.get("weaknesses", [])
