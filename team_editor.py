@@ -103,7 +103,7 @@ class TeamEditor:
 
                 tk.Label(name_row, text="Name:", bg="#333333", fg="white", font=("Helvetica", 9)).pack(side="left",
                                                                                                        padx=(2, 4))
-                name_entry = tk.Entry(name_row, width=18, font=("Helvetica", 9))
+                name_entry = tk.Entry(name_row, width=18, font=("Helvetica", 10))
                 name_entry.pack(side="left")
 
                 AutocompleteEntry(
@@ -116,7 +116,7 @@ class TeamEditor:
                 level_row = tk.Frame(input_frame, bg="#333333")
                 level_row.pack(anchor="w", pady=1)
 
-                tk.Label(level_row, text="Level:  ", bg="#333333", fg="white", font=("Helvetica", 9)).pack(side="left",
+                tk.Label(level_row, text="Level:  ", bg="#333333", fg="white", font=("Helvetica", 10)).pack(side="left",
                                                                                                          padx=(2, 4))
                 level_entry = tk.Entry(level_row, width=5, font=("Helvetica", 9))
                 level_entry.pack(side="left", padx=(0, 4))
@@ -124,16 +124,9 @@ class TeamEditor:
                 tk.Button(
                     level_row, text="Suchen",
                     command=lambda s=idx: self.change_pokemon(s),
-                    font=("Helvetica", 8)
+                    font=("Helvetica", 9)
                 ).pack(side="left",anchor="w", pady=1, padx=(0, 4))
 
-                save_btn = tk.Button(
-                    level_row, text="💾",
-                    command=lambda s=idx: self.save_single_pokemon(s),
-                    bg="#447744", fg="white", font=("Helvetica", 8), width=3
-                )
-                save_btn.pack(side="left")
-                self.save_buttons.append(save_btn)
 
                 self.name_entries.append(name_entry)
                 self.level_entries.append(level_entry)
@@ -366,7 +359,7 @@ class TeamEditor:
 
                 # --- SKALIERUNG FÜR BILD ---
                 max_img_width = int(frame_width * 0.3 * 0.8)  # 30% Breite * 80%
-                max_img_height = int(frame_height * 0.3)  # 30% der Gesamthöhe für Zeile 0
+                max_img_height = int(frame_height * 0.5)  # 50% der Gesamthöhe für Zeile 0
 
                 img_ratio = img.width / img.height
 
@@ -396,12 +389,15 @@ class TeamEditor:
                 img_label.configure(image=img_tk)
                 img_label.image = img_tk
 
-                strengths = data.get("strengths", [])
-                weaknesses = data.get("weaknesses", [])
+                strengths = [str(s).title() for s in data.get("strengths", [])]
+                weaknesses = [str(w).title() for w in data.get("weaknesses", [])]
+                types = [str(t).title() for t in data.get("types", [])]
+                moves = [str(m).title() for m in data.get("moves", [])]
+
                 stats_text = (
                     f"Level: {data.get('level', 100)}\n"
-                    f"Typen: {', '.join(data['types'])}\n"
-                    f"Moves: {', '.join(data['moves'])}\n"
+                    f"Typen: {', '.join(types)}\n"
+                    f"Moves: {', '.join(moves)}\n"
                     f"Strengths: {', '.join(strengths) if strengths else '-'}\n"
                     f"Weaknesses: {', '.join(weaknesses) if weaknesses else '-'}"
                 )
