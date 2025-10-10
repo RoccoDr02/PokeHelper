@@ -5,8 +5,6 @@ from core.llm_client import LLMClient
 from models.team import Team
 
 class AIAdvisor:
-    """Pokémon Advisor mit LLM-Ensemble (Groq, OpenAI, Anthropic)"""
-
     def __init__(self, db, game_version: str = None):
         self.db = db
         self.game_version = game_version
