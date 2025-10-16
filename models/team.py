@@ -75,6 +75,19 @@ class Team:
                 pokemon_objects.append(Pokemon.from_dict(d))
         return cls(name=name, game_version=game_version, pokemon=pokemon_objects)
 
+    def auto_save(self):
+        """
+        Speichert das Team automatisch, ohne Dialoge oder Benutzereingriff.
+        Gibt True bei Erfolg zurück.
+        """
+        try:
+            self.save_to_file(self.name)
+            print(f"[AutoSave] Team '{self.name}' gespeichert.")
+            return True
+        except Exception as e:
+            print(f"[AutoSave] Fehler: {e}")
+            return False
+
 
 class Pokemon:
     def __init__(self, name: str, level: int = 100, types=None, moves=None,

@@ -72,29 +72,22 @@ class PokemonService:
         strengths = _calculate_strengths(types)
         weaknesses = _calculate_weaknesses(types)
 
-        # 🔥 Korrekte Move-Logik mit Level + Version
-        moves = []
+        # Erstelle alle Level-Up Moves, ungefiltert nach aktuellem Level
+        level_up_moves = []
         for move_entry in data.get("moves", []):
             move_name = move_entry.get("name")
             if not move_name:
                 continue
             for method in move_entry.get("learn_methods", []):
-                # Nur Level-Up-Moves berücksichtigen (optional: du kannst "machine" etc. später hinzufügen)
                 if method.get("method") != "level-up":
                     continue
-
-                move_level = method.get("level", 999)
-                if move_level > level:
-                    continue  # Noch nicht gelernt
-
                 version_group = method.get("version_group", "")
-                # ✅ Prüfe: Ist game_version Teil der version_group?
                 if game_version in version_group:
-                    moves.append(move_name)
-                    break  # Nur einmal pro Move
+                    move_level = method.get("level", 999)
+                    level_up_moves.append({"name": move_name, "level": move_level})
 
-        # Optional: Max. 4 Moves (wie im echten Spiel)
-        moves = moves[:4]
+        # Moves für Team: nur jene, die <= aktuelles Level sind
+        moves = [m["name"] for m in level_up_moves if m["level"] <= level][:4]
 
         # Fundorte (wie vorher)
         locations = []
@@ -104,7 +97,8 @@ class PokemonService:
                     locations.append(encounter.get("location", "Unbekannt"))
                     break
 
-        return Pokemon(
+        # Pokemon-Objekt erzeugen
+        pokemon = Pokemon(
             name=data["name"],
             level=level,
             types=types,
@@ -114,6 +108,11 @@ class PokemonService:
             weaknesses=weaknesses,
             locations=locations
         )
+
+        # Alle Level-Up Moves speichern, **ungefiltert**, für das Detail-Popup
+        pokemon.level_up_moves = level_up_moves
+
+        return pokemon
 
     def get_all_pokemon_names(self):
         """Gibt eine Liste aller Pokémon-Namen (kleingeschrieben) zurück."""
