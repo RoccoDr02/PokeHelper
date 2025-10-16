@@ -84,6 +84,91 @@
         "rock",
         "steel"
       ]
+    },
+    {
+      "name": "roserade",
+      "level": 15,
+      "types": [
+        "grass",
+        "poison"
+      ],
+      "moves": [
+        "poison-sting",
+        "mega-drain",
+        "sweet-scent",
+        "weather-ball"
+      ],
+      "image_path": "pokemon_images/roserade.png",
+      "locations": [
+        "unova-route-12-area",
+        "lostlorn-forest-area",
+        "unova-victory-road-2-unknown-area-72"
+      ],
+      "strengths": [
+        "bug",
+        "fairy",
+        "fire",
+        "flying"
+      ],
+      "weaknesses": [
+        "fire",
+        "flying",
+        "bug",
+        "fairy"
+      ]
+    },
+    {
+      "name": "ivysaur",
+      "level": 20,
+      "types": [
+        "grass",
+        "poison"
+      ],
+      "moves": [
+        "vine-whip",
+        "tackle",
+        "take-down",
+        "growl"
+      ],
+      "image_path": "pokemon_images/ivysaur.png",
+      "locations": [],
+      "strengths": [
+        "bug",
+        "fairy",
+        "fire",
+        "flying"
+      ],
+      "weaknesses": [
+        "fire",
+        "flying",
+        "bug",
+        "fairy"
+      ]
+    },
+    {
+      "name": "charmander",
+      "level": 15,
+      "types": [
+        "fire"
+      ],
+      "moves": [
+        "scratch",
+        "growl",
+        "ember",
+        "smokescreen"
+      ],
+      "image_path": "pokemon_images/charmander.png",
+      "locations": [],
+      "strengths": [
+        "rock",
+        "steel",
+        "water"
+      ],
+      "weaknesses": [
+        "water",
+        "rock",
+        "steel"
+      ]
     }
   ]
 }

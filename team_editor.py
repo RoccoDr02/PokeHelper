@@ -130,6 +130,13 @@ class TeamEditor:
                     font=("Helvetica", 8)
                 ).pack(side="left", padx=(0, 4))
 
+                tk.Button(
+                    input_frame,
+                    text="Details",
+                    font=("Helvetica", 8),
+                    command=lambda s=idx: self.show_pokemon_details(s)
+                ).pack(side="left", padx=(0, 4))
+
                 self.name_entries.append(name_entry)
                 self.level_entries.append(level_entry)
 
@@ -307,7 +314,7 @@ class TeamEditor:
             "• Nutze Prof. Eich für Tipps zu deinem Team\n"
         ))
 
-    # === BESTEHENDE METHODEN (unverändert) ===
+    # === BESTEHENDE METHODEN ===
     def toggle_advisor(self):
         if self.advice_input_frame.winfo_ismapped():
             self.advice_input_frame.grid_remove()
@@ -375,6 +382,20 @@ class TeamEditor:
                     image_path=pokemon_obj.image_path,
                     locations=pokemon_obj.locations
                 )
+
+                # In team_data speichern, inklusive level_up_moves
+                self.team_data[slot] = {
+                    "name": team_pokemon.name,
+                    "level": team_pokemon.level,
+                    "types": team_pokemon.types,
+                    "moves": team_pokemon.moves,
+                    "strengths": team_pokemon.strengths,
+                    "weaknesses": team_pokemon.weaknesses,
+                    "image_path": team_pokemon.image_path,
+                    "locations": team_pokemon.locations,
+                    "level_up_moves": pokemon_obj.level_up_moves
+                }
+
                 self.team_data[slot] = team_pokemon.to_dict()
                 if len(self.team.pokemon) > slot:
                     self.team.pokemon[slot] = team_pokemon
@@ -383,6 +404,7 @@ class TeamEditor:
                         self.team.pokemon.append(None)
                     self.team.pokemon[slot] = team_pokemon
                 self.root.after(0, self.update_team_display)
+                self.root.after(500, lambda: self.team.auto_save())
             except ValueError as e:
                 self.root.after(0, lambda e=e: self._show_error(slot, str(e)))
 
@@ -464,15 +486,70 @@ class TeamEditor:
     def on_close(self):
         if any(self.team_data):
             if tk.messagebox.askyesno("Team speichern?", "Möchtest du dein aktuelles Team speichern, bevor das Fenster geschlossen wird?"):
-                self.save_team()
+                try:
+                    self.team.auto_save()
+                except Exception as e:
+                    tk.messagebox.showerror("Fehler beim Speichern", str(e))
         self.root.destroy()
+
+    def show_pokemon_details(self, slot):
+        data = self.team_data[slot]
+        if not data:
+            tk.messagebox.showinfo("Keine Daten", "Dieses Pokémon ist noch leer.")
+            return
+
+        popup = tk.Toplevel(self.root)
+        popup.title(f"{data.get('name', 'Unbekannt').title()} – Details")
+        popup.geometry("400x500")
+        popup.configure(bg="#333333")
+        popup.transient(self.root)
+
+        # Typen
+        types = [t.title() for t in data.get("types", [])]
+        tk.Label(popup, text=f"Typen: {', '.join(types)}", bg="#333333", fg="white",
+                 font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=5)
+
+        # Stärken / Schwächen
+        strengths = [s.title() for s in data.get("strengths", [])]
+        weaknesses = [w.title() for w in data.get("weaknesses", [])]
+        tk.Label(popup, text=f"Stärken: {', '.join(strengths) if strengths else '-'}", bg="#333333", fg="lightgreen",
+                 font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=2)
+        tk.Label(popup, text=f"Schwächen: {', '.join(weaknesses) if weaknesses else '-'}", bg="#333333", fg="red",
+                 font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=2)
+
+        # Level-Up Moves
+        tk.Label(popup, text="Nächste Level-Up Moves:", bg="#333333", fg="white", font=("Helvetica", 12, "bold")).pack(
+            anchor="w", padx=10, pady=(10, 0))
+
+        level_up_moves = data.get("level_up_moves", [])
+        current_level = data.get("level", 1)
+
+        # Sortiere nach Level
+        sorted_moves = sorted(level_up_moves, key=lambda m: m["level"])
+
+        # Nächste 5 Moves, die noch nicht gelernt wurden
+        future_moves = [m for m in sorted(level_up_moves, key=lambda x: x["level"]) if m["level"] > current_level][:5]
+
+        if future_moves:
+            moves_text = "\n".join([f"{m['name'].title()} – Level {m['level']}" for m in future_moves])
+        else:
+            moves_text = "Keine Level-Up-Moves mehr verfügbar."
+
+        tk.Label(popup, text=moves_text, bg="#333333", fg="lightgray", justify="left", font=("Helvetica", 10)).pack(
+            anchor="w", padx=20)
+
+        # Fundorte
+        locations = data.get("locations", [])
+        tk.Label(popup, text=f"Fundorte: {', '.join(locations) if locations else '-'}", bg="#333333", fg="lightblue",
+                 justify="left", font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=10)
+
 
     def switch_team(self, new_team):
         """Wechselt zu einem neuen Team und übernimmt dessen Spielversion."""
         if any(p is not None for p in self.team_data):
             if messagebox.askyesno("Team speichern",
                                    "Möchtest du dein aktuelles Team speichern, bevor das Team gewechselt wird?"):
-                self.save_team()
+                self.team.auto_save()
 
         # 🔥 Spielversion sofort aktualisieren
         self.game_version = new_team.game_version
