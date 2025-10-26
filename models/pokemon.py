@@ -9,3 +9,16 @@ class Pokemon:
         self.locations = locations or []
         self.strengths = strengths or []
         self.weaknesses = weaknesses or []
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "level": self.level,
+            "types": self.types,
+            "moves": self.moves,
+            "image_path": self.image_path,
+            "locations": self.locations,
+            "strengths": self.strengths,
+            "weaknesses": self.weaknesses,
+            "level_up_moves": self.level_up_moves
+        }

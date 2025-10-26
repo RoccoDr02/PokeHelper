@@ -13,7 +13,7 @@ from core.pokemon_service import PokemonService
 
 
 class TeamEditor:
-    def __init__(self, root, game_version, pokemon_service, db, team=None, ai_advisor=None):
+    def __init__(self, root, game_version, pokemon_service: PokemonService, db, team=None, ai_advisor=None):
         self.root = root
         self.db = db
         self.pokemon_service = pokemon_service
@@ -37,10 +37,7 @@ class TeamEditor:
         ]
 
         self.resize_job = None
-
-        # UI aufbauen
         self.setup_ui()
-
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.after(100, self.update_team_display)
         self.root.after(150, self.actually_resize)
@@ -371,41 +368,26 @@ class TeamEditor:
                 level = 1
 
             try:
-                pokemon_obj = self.pokemon_service.fetch_pokemon(name=name, level=level, game_version=self.game_version)
-                team_pokemon = Pokemon(
-                    name=pokemon_obj.name,
-                    level=pokemon_obj.level,
-                    types=pokemon_obj.types,
-                    moves=pokemon_obj.moves,
-                    strengths=pokemon_obj.strengths,
-                    weaknesses=pokemon_obj.weaknesses,
-                    image_path=pokemon_obj.image_path,
-                    locations=pokemon_obj.locations
+                # Pokémon vom Service holen (berechnet alles: types, strengths, weaknesses)
+                pokemon_obj = self.pokemon_service.fetch_pokemon(
+                    name=name, level=level, game_version=self.game_version
                 )
 
-                # In team_data speichern, inklusive level_up_moves
-                self.team_data[slot] = {
-                    "name": team_pokemon.name,
-                    "level": team_pokemon.level,
-                    "types": team_pokemon.types,
-                    "moves": team_pokemon.moves,
-                    "strengths": team_pokemon.strengths,
-                    "weaknesses": team_pokemon.weaknesses,
-                    "image_path": team_pokemon.image_path,
-                    "locations": team_pokemon.locations,
-                    "level_up_moves": pokemon_obj.level_up_moves
-                }
+                # Team-Daten speichern
+                self.team_data[slot] = pokemon_obj.to_dict()
 
-                self.team_data[slot] = team_pokemon.to_dict()
+                # Team-Objekt aktualisieren
                 if len(self.team.pokemon) > slot:
-                    self.team.pokemon[slot] = team_pokemon
+                    self.team.pokemon[slot] = pokemon_obj
                 else:
                     while len(self.team.pokemon) <= slot:
                         self.team.pokemon.append(None)
-                    self.team.pokemon[slot] = team_pokemon
+                    self.team.pokemon[slot] = pokemon_obj
+
                 self.root.after(0, self.update_team_display)
                 self.root.after(500, lambda: self.team.auto_save())
-            except ValueError as e:
+
+            except Exception as e:
                 self.root.after(0, lambda e=e: self._show_error(slot, str(e)))
 
         threading.Thread(target=load_data, daemon=True).start()
@@ -415,6 +397,7 @@ class TeamEditor:
         self.img_labels[slot].configure(image="")
         self.img_labels[slot].image = None
 
+    # === Anzeige aktualisieren ===
     def update_team_display(self):
         for idx, frame in enumerate(self.team_frames):
             if frame.winfo_width() <= 1 or frame.winfo_height() <= 1:
@@ -449,9 +432,10 @@ class TeamEditor:
                 self.img_labels[idx].configure(image=img_tk)
                 self.img_labels[idx].image = img_tk
 
-                strengths = [str(s).title() for s in data.get("strengths", [])]
-                weaknesses = [str(w).title() for w in data.get("weaknesses", [])]
-                types = [str(t).title() for t in data.get("types", [])]
+                # Typen, Stärken, Schwächen direkt aus dem Dictionary
+                types = [t.title() for t in data.get("types", [])]
+                strengths = [s.title() for s in data.get("strengths", [])]
+                weaknesses = [w.title() for w in data.get("weaknesses", [])]
                 moves = [str(m).title() for m in data.get("moves", [])]
                 stats_text = (
                     f"Level: {data.get('level', 100)}\n"
@@ -567,10 +551,8 @@ class TeamEditor:
                     "name": p.name,
                     "level": p.level,
                     "types": p.types,
-                    "moves": p.moves,
-                    "image_path": p.image_path,
-                    "strengths": getattr(p, "strengths", []),
-                    "weaknesses": getattr(p, "weaknesses", []),
+                    "strengths": p.strengths,
+                    "weaknesses": p.weaknesses
                 }
                 self.name_entries[idx].delete(0, tk.END)
                 self.name_entries[idx].insert(0, p.name)
