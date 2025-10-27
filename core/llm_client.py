@@ -14,35 +14,52 @@ class LLMClient:
     def __init__(self, provider: str = "openai", model: str = None):
         self.provider = provider.lower()
         self.model = model
+        self.enabled = True
 
         if self.provider == "openai":
             api_key = os.getenv("OPENAI_KEY")
             if not api_key:
-                raise ValueError("OPENAI_KEY fehlt in .env")
+                print("⚠️ Hinweis: Kein OPENAI_KEY gefunden – LLM derzeit deaktiviert.")
+                self.enabled = False
+                self.client = None
+                return
             self.client = OpenAI(api_key=api_key)
             self.model = model or "gpt-4o-mini"
 
         elif self.provider == "anthropic":
             api_key = os.getenv("ANTHROPIC_KEY")
             if not api_key:
-                raise ValueError("ANTHROPIC_KEY fehlt in .env")
+                print("⚠️ Hinweis: Kein ANTHROPIC_KEY gefunden – LLM derzeit deaktiviert.")
+                self.enabled = False
+                self.client = None
+                return
             self.client = anthropic.Anthropic(api_key=api_key)
             self.model = model or "claude-3-5-sonnet"
 
         elif self.provider == "groq":
             if Groq is None:
-                raise ImportError("Das 'groq' Paket ist nicht installiert. Bitte `pip install groq` ausführen.")
+                print("⚠️ Hinweis: Das Paket 'groq' ist nicht installiert – LLM deaktiviert.")
+                self.enabled = False
+                self.client = None
+                return
             api_key = os.getenv("GROQ_KEY")
             if not api_key:
-                raise ValueError("GROQ_KEY fehlt in .env")
+                print("⚠️ Hinweis: Kein GROQ_KEY gefunden – LLM derzeit deaktiviert.")
+                self.enabled = False
+                self.client = None
+                return
             self.client = Groq(api_key=api_key)
             self.model = model or "llama3-70b-8192"
 
         else:
-            raise ValueError(f"Unbekannter LLM-Provider: {self.provider}")
+            print(f"⚠️ Unbekannter LLM-Provider: {self.provider} – Client deaktiviert.")
+            self.enabled = False
+            self.client = None
 
     def chat(self, messages: list[dict]) -> str:
-        """Einheitliche Chat-Schnittstelle"""
+        if not self.enabled:
+            return "⚠️ Kein aktiver LLM verfügbar – bitte API-Key eingeben."
+
         if self.provider == "openai":
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -64,3 +81,10 @@ class LLMClient:
                 messages=messages
             )
             return response.choices[0].message.content
+
+    def set_api_key(self, provider: str, key: str):
+        """
+        Platzhalter – später wird hier der API-Key gespeichert & aktiviert.
+        """
+        print("🔧 set_api_key() ist noch nicht implementiert (nur Platzhalter).")
+        pass
