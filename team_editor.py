@@ -91,8 +91,8 @@ class TeamEditor:
         for i in range(2):
             for j in range(3):
                 idx = i * 3 + j
-                frame = tk.Frame(self.team_container, bg="#333333", bd=2, relief="raised")
-                frame.grid(row=i, column=j, sticky="nsew", padx=5, pady=5)
+                frame = tk.Frame(self.team_container, bg="#333333", highlightbackground="#222222", highlightthickness=2)
+                frame.grid(row=i, column=j, sticky="nsew")
                 frame.grid_propagate(False)
                 frame.rowconfigure(0, weight=1)
                 frame.rowconfigure(1, weight=0)
@@ -132,7 +132,16 @@ class TeamEditor:
                     text="Details",
                     font=("Helvetica", 8),
                     command=lambda s=idx: self.show_pokemon_details(s)
-                ).pack(side="left", padx=(0, 4))
+                ).pack(side="left", padx=(4, 4), pady=(3, 3))
+
+                tk.Button(
+                    input_frame,
+                    text="Löschen",
+                    font=("Helvetica", 8),
+                    bg="#ff0000",
+                    fg="white",
+                    command=lambda s=idx: self.delete_pokemon(s)
+                ).pack(side="left", padx=(4, 4), pady=(3, 3))
 
                 self.name_entries.append(name_entry)
                 self.level_entries.append(level_entry)
@@ -154,7 +163,8 @@ class TeamEditor:
                     font=("Helvetica", 9),
                     wraplength=250
                 )
-                stats_label.grid(row=2, column=0, columnspan=2, sticky="nw", padx=5, pady=5)
+                stats_label.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+                frame.rowconfigure(2, weight=1)
                 self.stats_labels.append(stats_label)
 
         # === AI ADVISOR BEREICH (nur in Spalte 1) ===
@@ -301,6 +311,20 @@ class TeamEditor:
             self.switch_team(team_obj)
         except Exception as e:
             messagebox.showerror("Fehler beim Laden", str(e))
+
+    def delete_pokemon(self, slot):
+        if self.team_data[slot] is None:
+            return
+        confirm = messagebox.askyesno("Pokémon löschen", f"Willst du {self.team_data[slot]} wirklich löschen?")
+        if not confirm:
+            return
+        self.team_data[slot] = None
+        if len(self.team.pokemon) > slot:
+            self.team.pokemon[slot] = None
+        self.name_entries[slot].delete(0, tk.END)
+        self.level_entries[slot].delete(0, tk.END)
+        self.update_team_display()
+        self.team.auto_save()
 
     def open_settings(self):
         messagebox.showinfo("Einstellungen", "Keine Einstellungen verfügbar.")
@@ -482,6 +506,24 @@ class TeamEditor:
             tk.messagebox.showinfo("Keine Daten", "Dieses Pokémon ist noch leer.")
             return
 
+        try:
+            level = data.get("level", 1)
+            name = data.get("name", "")
+            full_pokemon = self.pokemon_service.fetch_pokemon(
+                name=name,
+                level=level,
+                game_version=self.game_version
+            )
+            self.team_data[slot] = full_pokemon.to_dict()
+            if len(self.team.pokemon) > slot:
+                self.team.pokemon[slot] = full_pokemon
+
+        except Exception as e:
+            tk.messagebox.showerror("Fehler", f"Pokémon konnte nicht geladen werden:\n{e}")
+            return
+
+        data = self.team_data[slot]
+
         popup = tk.Toplevel(self.root)
         popup.title(f"{data.get('name', 'Unbekannt').title()} – Details")
         popup.geometry("400x500")
@@ -547,17 +589,30 @@ class TeamEditor:
     def load_team_data(self, team):
         for idx, p in enumerate(team.pokemon):
             if p:
-                self.team_data[idx] = {
-                    "name": p.name,
-                    "level": p.level,
-                    "types": p.types,
-                    "strengths": p.strengths,
-                    "weaknesses": p.weaknesses
-                }
-                self.name_entries[idx].delete(0, tk.END)
-                self.name_entries[idx].insert(0, p.name)
-                self.level_entries[idx].delete(0, tk.END)
-                self.level_entries[idx].insert(0, str(p.level))
+                try:
+                    full_pokemon = self.pokemon_service.fetch_pokemon(
+                        name=p.name,
+                        level=p.level,
+                        game_version=self.game_version
+                    )
+                    self.team_data[idx] = full_pokemon.to_dict()
+                    self.team.pokemon[idx] = full_pokemon
+
+                    self.name_entries[idx].delete(0, tk.END)
+                    self.name_entries[idx].insert(0, full_pokemon.name)
+                    self.level_entries[idx].delete(0, tk.END)
+                    self.level_entries[idx].insert(0, str(full_pokemon.level))
+
+                except Exception as e:
+                    print(f"Fehler beim Laden von Pokémon {p.name}: {e}")
+
+                    self.team_data[idx] = {
+                        "name": p.name,
+                        "level": p.level,
+                        "types": p.types,
+                        "strengths": p.strengths,
+                        "weaknesses": p.weaknesses
+                    }
 
     def save_team(self):
         team_name = simpledialog.askstring("Team speichern", "Name des Teams:")

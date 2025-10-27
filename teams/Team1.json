@@ -30,28 +30,6 @@
         "ice",
         "flying",
         "psychic"
-      ],
-      "level_up_moves": [
-        {
-          "name": "poison-sting",
-          "level": 1
-        },
-        {
-          "name": "mega-drain",
-          "level": 1
-        },
-        {
-          "name": "sweet-scent",
-          "level": 1
-        },
-        {
-          "name": "weather-ball",
-          "level": 1
-        },
-        {
-          "name": "magical-leaf",
-          "level": 1
-        }
       ]
     },
     {
@@ -78,72 +56,6 @@
         "ice",
         "flying",
         "psychic"
-      ],
-      "level_up_moves": [
-        {
-          "name": "vine-whip",
-          "level": 9
-        },
-        {
-          "name": "tackle",
-          "level": 1
-        },
-        {
-          "name": "take-down",
-          "level": 15
-        },
-        {
-          "name": "double-edge",
-          "level": 31
-        },
-        {
-          "name": "growl",
-          "level": 1
-        },
-        {
-          "name": "growl",
-          "level": 3
-        },
-        {
-          "name": "leech-seed",
-          "level": 1
-        },
-        {
-          "name": "leech-seed",
-          "level": 7
-        },
-        {
-          "name": "growth",
-          "level": 28
-        },
-        {
-          "name": "razor-leaf",
-          "level": 20
-        },
-        {
-          "name": "solar-beam",
-          "level": 44
-        },
-        {
-          "name": "poison-powder",
-          "level": 13
-        },
-        {
-          "name": "sleep-powder",
-          "level": 13
-        },
-        {
-          "name": "sweet-scent",
-          "level": 23
-        },
-        {
-          "name": "synthesis",
-          "level": 39
-        },
-        {
-          "name": "worry-seed",
-          "level": 36
-        }
       ]
     },
     {
