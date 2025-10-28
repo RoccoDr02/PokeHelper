@@ -315,9 +315,11 @@ class TeamEditor:
     def delete_pokemon(self, slot):
         if self.team_data[slot] is None:
             return
-        confirm = messagebox.askyesno("Pokémon löschen", f"Willst du {self.team_data[slot]} wirklich löschen?")
+
+        confirm = messagebox.askyesno("Pokémon löschen", f"Willst du {self.team_data[slot]["name"]} wirklich löschen?")
         if not confirm:
             return
+
         self.team_data[slot] = None
         if len(self.team.pokemon) > slot:
             self.team.pokemon[slot] = None
@@ -501,6 +503,13 @@ class TeamEditor:
         self.root.destroy()
 
     def show_pokemon_details(self, slot):
+        if not hasattr(self, "details_windows"):
+            self.details_windows = {}
+
+        if slot in self.details_windows and self.details_windows[slot].winfo_exists():
+            self.details_windows[slot].lift()
+            return
+
         data = self.team_data[slot]
         if not data:
             tk.messagebox.showinfo("Keine Daten", "Dieses Pokémon ist noch leer.")
@@ -523,51 +532,51 @@ class TeamEditor:
             return
 
         data = self.team_data[slot]
-
         popup = tk.Toplevel(self.root)
         popup.title(f"{data.get('name', 'Unbekannt').title()} – Details")
         popup.geometry("400x500")
         popup.configure(bg="#333333")
         popup.transient(self.root)
 
-        # Typen
+        # Fenster für diesen Slot merken
+        self.details_windows[slot] = popup
+
+        # Beim Schließen wieder sauber entfernen
+        popup.protocol("WM_DELETE_WINDOW", lambda s=slot: self._close_details(s))
+
+        # ---------- UI-Code ----------
+
         types = [t.title() for t in data.get("types", [])]
         tk.Label(popup, text=f"Typen: {', '.join(types)}", bg="#333333", fg="white",
                  font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=5)
 
-        # Stärken / Schwächen
         strengths = [s.title() for s in data.get("strengths", [])]
         weaknesses = [w.title() for w in data.get("weaknesses", [])]
         tk.Label(popup, text=f"Stärken: {', '.join(strengths) if strengths else '-'}", bg="#333333", fg="lightgreen",
                  font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=2)
-        tk.Label(popup, text=f"Schwächen: {', '.join(weaknesses) if weaknesses else '-'}", bg="#333333", fg="red",
+        tk.Label(popup, text=f"Weaknesses: {', '.join(weaknesses) if weaknesses else '-'}", bg="#333333", fg="red",
                  font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=2)
 
-        # Level-Up Moves
-        tk.Label(popup, text="Nächste Level-Up Moves:", bg="#333333", fg="white", font=("Helvetica", 12, "bold")).pack(
-            anchor="w", padx=10, pady=(10, 0))
+        tk.Label(popup, text="Nächste Level-Up Moves:", bg="#333333", fg="white",
+                 font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=(10, 0))
 
         level_up_moves = data.get("level_up_moves", [])
         current_level = data.get("level", 1)
-
-        # Sortiere nach Level
-        sorted_moves = sorted(level_up_moves, key=lambda m: m["level"])
-
-        # Nächste 5 Moves, die noch nicht gelernt wurden
         future_moves = [m for m in sorted(level_up_moves, key=lambda x: x["level"]) if m["level"] > current_level][:5]
+        moves_text = "\n".join([f"{m['name'].title()} – Level {m['level']}" for m in future_moves]) \
+            if future_moves else "Keine Level-Up-Moves mehr verfügbar."
+        tk.Label(popup, text=moves_text, bg="#333333", fg="lightgray",
+                 justify="left", font=("Helvetica", 10)).pack(anchor="w", padx=20)
 
-        if future_moves:
-            moves_text = "\n".join([f"{m['name'].title()} – Level {m['level']}" for m in future_moves])
-        else:
-            moves_text = "Keine Level-Up-Moves mehr verfügbar."
-
-        tk.Label(popup, text=moves_text, bg="#333333", fg="lightgray", justify="left", font=("Helvetica", 10)).pack(
-            anchor="w", padx=20)
-
-        # Fundorte
         locations = data.get("locations", [])
         tk.Label(popup, text=f"Fundorte: {', '.join(locations) if locations else '-'}", bg="#333333", fg="lightblue",
                  justify="left", font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=10)
+
+    def _close_details(self, slot):
+        """Wird aufgerufen, wenn das Fenster eines Slots geschlossen wird"""
+        if slot in self.details_windows:
+            self.details_windows[slot].destroy()
+            del self.details_windows[slot]
 
 
     def switch_team(self, new_team):
