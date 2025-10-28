@@ -182,7 +182,7 @@ class TeamEditor:
                 return "break"
         self.advice_entry.bind("<Return>", on_enter)
 
-        self.advice_frame = tk.Frame(self.root, bg="#222222", height=160)
+        self.advice_frame = tk.Frame(self.root, bg="#222222", height=180)
         self.advice_frame.grid(row=2, column=1, sticky="sew", padx=10, pady=(5, 15))
         self.advice_frame.grid_propagate(False)
         self.advice_frame.grid_remove()
@@ -231,7 +231,6 @@ class TeamEditor:
             self._menu_buttons_created = True
 
     def new_team(self):
-        # Optional: Aktuelles Team speichern?
         if any(p is not None for p in self.team_data):
             if not messagebox.askyesno("Neues Team", "Möchtest du das aktuelle Team verwerfen?"):
                 return
@@ -342,6 +341,7 @@ class TeamEditor:
         if self.advice_input_frame.winfo_ismapped():
             self.advice_input_frame.grid_remove()
             self.advice_frame.grid_remove()
+            self.root.geometry("1400x900")
             self.root.rowconfigure(0, weight=1)
             self.root.rowconfigure(1, weight=0)
             self.root.rowconfigure(2, weight=0)
@@ -354,6 +354,7 @@ class TeamEditor:
             self.root.rowconfigure(0, weight=2)
             self.root.rowconfigure(1, weight=0)
             self.root.rowconfigure(2, weight=1)
+            self.root.geometry("1400x1100")
             self.root.update_idletasks()
             self.on_resize(None)
 
