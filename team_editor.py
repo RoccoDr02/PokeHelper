@@ -183,7 +183,7 @@ class TeamEditor:
         self.advice_entry.bind("<Return>", on_enter)
 
         self.advice_frame = tk.Frame(self.root, bg="#222222", height=180)
-        self.advice_frame.grid(row=2, column=1, sticky="sew", padx=10, pady=(5, 15))
+        self.advice_frame.grid(row=2, column=1, sticky="nsew", padx=10, pady=(5, 15))
         self.advice_frame.grid_propagate(False)
         self.advice_frame.grid_remove()
 
@@ -225,7 +225,7 @@ class TeamEditor:
             tk.Button(self.menu_frame, text="📂 Team laden", command=self.load_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
             tk.Button(self.menu_frame, text="💾 Team speichern", command=self.save_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
             tk.Button(self.menu_frame, text="🔍 Prof. Eich", command=self.toggle_advisor, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
-            tk.Button(self.menu_frame, text="⚙️ Einstellungen", command=self.open_settings, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
+            tk.Button(self.menu_frame, text="🤖 API Keys", command=self.open_api_keys, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
             tk.Label(self.menu_frame, text="", bg="#2a2a2a").pack(expand=True)
             tk.Button(self.menu_frame, text="❓ Hilfe", command=self.show_help, bg="#444444", fg="lightgray", font=("Helvetica", 9), pady=3).pack(side="bottom", fill="x", pady=5)
             self._menu_buttons_created = True
@@ -327,8 +327,70 @@ class TeamEditor:
         self.update_team_display()
         self.team.auto_save()
 
-    def open_settings(self):
-        messagebox.showinfo("Einstellungen", "Keine Einstellungen verfügbar.")
+    def open_api_keys(self):
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        from dotenv import dotenv_values
+        from core.llm_client import LLMClient, ENV_PATH
+        import os
+
+        # Neues Fenster erstellen
+        settings_win = tk.Toplevel()
+        settings_win.title("API-Key Einstellungen")
+        settings_win.geometry("420x260")
+        settings_win.resizable(True, True)
+        settings_win.grab_set()  # macht das Fenster modal (blockiert Hauptfenster)
+        settings_win.minsize(420, 260)
+
+        ttk.Label(settings_win, text="🔧 API Keys verwalten", font=("Segoe UI", 13, "bold")).pack(pady=10)
+
+        # Aktuelle Keys laden
+        config_values = dotenv_values(ENV_PATH)
+        providers = {
+            "OpenAI": "OPENAI_KEY",
+            "Anthropic": "ANTHROPIC_KEY",
+            "Groq": "GROQ_KEY"
+        }
+
+        entries = {}
+
+        frame = ttk.Frame(settings_win)
+        frame.pack(padx=20, pady=10, fill="x")
+
+        # Einträge anzeigen
+        for i, (provider_name, key_name) in enumerate(providers.items()):
+            ttk.Label(frame, text=provider_name + ":", font=("Segoe UI", 10)).grid(row=i, column=0, sticky="w", pady=5)
+
+            key_value = config_values.get(key_name, "")
+            entry = ttk.Entry(frame, width=40)
+            entry.insert(0, key_value)
+            entry.grid(row=i, column=1, pady=5, sticky="ew")
+            entries[key_name] = entry
+
+        frame.columnconfigure(1, weight=1)
+
+        # Speichern-Funktion
+        def save_keys():
+            saved = []
+            for provider_name, key_name in providers.items():
+                new_value = entries[key_name].get().strip()
+                if new_value:
+                    client = LLMClient(provider_name.lower())
+                    client.set_api_key(provider_name.lower(), new_value)
+                    saved.append(provider_name)
+
+            if saved:
+                messagebox.showinfo("Gespeichert", f"API Keys für {', '.join(saved)} wurden gespeichert.")
+            else:
+                messagebox.showinfo("Keine Änderungen", "Keine API Keys wurden geändert.")
+
+            settings_win.destroy()
+
+        # Buttons unten
+        ttk.Button(settings_win, text="💾 Speichern", command=save_keys).pack(pady=10)
+        ttk.Button(settings_win, text="Schließen", command=settings_win.destroy).pack()
+
+
 
     def show_help(self):
         messagebox.showinfo("Hilfe", (
@@ -536,6 +598,7 @@ class TeamEditor:
         popup = tk.Toplevel(self.root)
         popup.title(f"{data.get('name', 'Unbekannt').title()} – Details")
         popup.geometry("400x500")
+        popup.resizable(False, False)
         popup.configure(bg="#333333")
         popup.transient(self.root)
 
@@ -553,7 +616,7 @@ class TeamEditor:
 
         strengths = [s.title() for s in data.get("strengths", [])]
         weaknesses = [w.title() for w in data.get("weaknesses", [])]
-        tk.Label(popup, text=f"Stärken: {', '.join(strengths) if strengths else '-'}", bg="#333333", fg="lightgreen",
+        tk.Label(popup, text=f"Strengths: {', '.join(strengths) if strengths else '-'}", bg="#333333", fg="lightgreen",
                  font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=2)
         tk.Label(popup, text=f"Weaknesses: {', '.join(weaknesses) if weaknesses else '-'}", bg="#333333", fg="red",
                  font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=2)
@@ -569,9 +632,23 @@ class TeamEditor:
         tk.Label(popup, text=moves_text, bg="#333333", fg="lightgray",
                  justify="left", font=("Helvetica", 10)).pack(anchor="w", padx=20)
 
+        tk.Label(popup, text="Fundorte:", bg="#333333", fg="white",
+                 font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=(10, 0))
+
         locations = data.get("locations", [])
-        tk.Label(popup, text=f"Fundorte: {', '.join(locations) if locations else '-'}", bg="#333333", fg="lightblue",
-                 justify="left", font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=10)
+        location_text = "\n".join([f"• {loc}" for loc in locations]) if locations else "-"
+
+        label = tk.Label(
+            popup,
+            text=location_text,
+            bg="#333333",
+            fg="lightgray",
+            justify="left",
+            anchor="w",
+            font=("Helvetica", 10),
+            wraplength=380
+        )
+        label.pack(anchor="w", padx=20, pady=5, fill="x")
 
     def _close_details(self, slot):
         """Wird aufgerufen, wenn das Fenster eines Slots geschlossen wird"""
