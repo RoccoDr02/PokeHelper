@@ -1,0 +1,200 @@
+{
+  "name": "Unbenanntes Team",
+  "game_version": "platinum",
+  "pokemon": [
+    {
+      "name": "ivysaur",
+      "level": 5,
+      "types": [
+        "grass",
+        "poison"
+      ],
+      "moves": [
+        "tackle",
+        "growl",
+        "growl",
+        "leech-seed"
+      ],
+      "image_path": "pokemon_images/ivysaur.png",
+      "locations": [],
+      "strengths": [
+        "fairy",
+        "water"
+      ],
+      "weaknesses": [
+        "fire",
+        "ice",
+        "flying",
+        "psychic"
+      ],
+      "level_up_moves": [
+        {
+          "name": "vine-whip",
+          "level": 9
+        },
+        {
+          "name": "tackle",
+          "level": 1
+        },
+        {
+          "name": "take-down",
+          "level": 15
+        },
+        {
+          "name": "double-edge",
+          "level": 31
+        },
+        {
+          "name": "growl",
+          "level": 1
+        },
+        {
+          "name": "growl",
+          "level": 3
+        },
+        {
+          "name": "leech-seed",
+          "level": 1
+        },
+        {
+          "name": "leech-seed",
+          "level": 7
+        },
+        {
+          "name": "growth",
+          "level": 28
+        },
+        {
+          "name": "razor-leaf",
+          "level": 20
+        },
+        {
+          "name": "solar-beam",
+          "level": 44
+        },
+        {
+          "name": "poison-powder",
+          "level": 13
+        },
+        {
+          "name": "sleep-powder",
+          "level": 13
+        },
+        {
+          "name": "sweet-scent",
+          "level": 23
+        },
+        {
+          "name": "synthesis",
+          "level": 39
+        },
+        {
+          "name": "worry-seed",
+          "level": 36
+        }
+      ]
+    },
+    {
+      "name": "charizard",
+      "level": 5,
+      "types": [
+        "fire",
+        "flying"
+      ],
+      "moves": [
+        "scratch",
+        "growl",
+        "ember",
+        "smokescreen"
+      ],
+      "image_path": "pokemon_images/charizard.png",
+      "locations": [],
+      "strengths": [
+        "bug",
+        "fighting",
+        "grass",
+        "ice"
+      ],
+      "weaknesses": [
+        "rock",
+        "water",
+        "electric",
+        "ground"
+      ],
+      "level_up_moves": [
+        {
+          "name": "scratch",
+          "level": 1
+        },
+        {
+          "name": "wing-attack",
+          "level": 36
+        },
+        {
+          "name": "growl",
+          "level": 1
+        },
+        {
+          "name": "ember",
+          "level": 1
+        },
+        {
+          "name": "ember",
+          "level": 7
+        },
+        {
+          "name": "flamethrower",
+          "level": 42
+        },
+        {
+          "name": "dragon-rage",
+          "level": 17
+        },
+        {
+          "name": "fire-spin",
+          "level": 49
+        },
+        {
+          "name": "smokescreen",
+          "level": 1
+        },
+        {
+          "name": "smokescreen",
+          "level": 10
+        },
+        {
+          "name": "slash",
+          "level": 32
+        },
+        {
+          "name": "scary-face",
+          "level": 21
+        },
+        {
+          "name": "heat-wave",
+          "level": 59
+        },
+        {
+          "name": "dragon-claw",
+          "level": 1
+        },
+        {
+          "name": "flare-blitz",
+          "level": 66
+        },
+        {
+          "name": "air-slash",
+          "level": 1
+        },
+        {
+          "name": "shadow-claw",
+          "level": 1
+        },
+        {
+          "name": "fire-fang",
+          "level": 28
+        }
+      ]
+    }
+  ]
+}
