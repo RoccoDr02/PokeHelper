@@ -118,42 +118,6 @@ class Database:
         finally:
             conn.close()
 
-    def get_gym_leaders(self, version: str):
-        """Gibt alle Arenaleiter einer bestimmten Spielversion zurück, in Reihenfolge."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        try:
-            cursor.execute("""
-                           SELECT a.reihenfolge, a.name, a.stadt, a.typ, a.orden
-                           FROM arenaleiter a
-                                    JOIN regionen r ON a.region_id = r.id
-                                    JOIN versionen v ON v.region_id = r.id
-                           WHERE LOWER(v.name) = LOWER(?)
-                           ORDER BY a.reihenfolge
-                           """, (version,))
-            return cursor.fetchall()
-        finally:
-            conn.close()
-
-    def add_gym_leader(self, region_name: str, reihenfolge: int, name: str, stadt: str, typ: str, orden: str):
-        """Fügt einen neuen Arenaleiter zu einer Region ein."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        try:
-            # Region-ID abfragen
-            cursor.execute("SELECT id FROM regionen WHERE LOWER(name) = LOWER(?)", (region_name,))
-            row = cursor.fetchone()
-            if not row:
-                raise ValueError(f"Region {region_name} existiert nicht!")
-            region_id = row[0]
-
-            cursor.execute("""
-                           INSERT INTO arenaleiter (region_id, reihenfolge, name, stadt, typ, orden)
-                           VALUES (?, ?, ?, ?, ?, ?)
-                           """, (region_id, reihenfolge, name, stadt, typ, orden))
-            conn.commit()
-        finally:
-            conn.close()
 
 class PokemonData:
     def __init__(self, name, types, image_path, locations):
