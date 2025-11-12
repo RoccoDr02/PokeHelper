@@ -9,19 +9,19 @@ class AIAdvisor:
     def __init__(self, db, game_version: str = None):
         self.db = db
         self.game_version = game_version
-        # LLM-Clients vorbereiten
+
         all_llms = [
             LLMClient(provider="groq"),
             LLMClient(provider="openai"),
             LLMClient(provider="anthropic")
         ]
-        # Nur aktivierte Clients behalten
+
         self.llms = [llm for llm in all_llms if llm.enabled]
         if not self.llms:
-            print("⚠️ Keine aktiven LLMs verfügbar – bitte API-Key in den Einstellungen hinzufügen.")
+            print("⚠️ No active LLMs available – please add API key in settings.")
 
     def _get_gym_leaders(self):
-        """Lädt Arenaleiter-Daten für die aktuelle Spielversion."""
+        """Loads gym leader data for the current game version."""
         if not self.game_version:
             return []
 
@@ -30,7 +30,7 @@ class AIAdvisor:
         FROM arenaleiter a
         JOIN regionen r ON a.region_id = r.id
         JOIN versionen v ON v.region_id = r.id
-        WHERE LOWER(v.name) = ?  -- case-insensitive Abfrage
+        WHERE LOWER(v.name) = ?  -- case-insensitive query
         ORDER BY a.reihenfolge;
         """
 
@@ -52,7 +52,7 @@ class AIAdvisor:
                     "version": versionen.strip()
                 })
         except Exception as e:
-            print(f"❌ Fehler beim Laden der Arenaleiter: {e}")
+            print(f"❌ Error loading gym leaders: {e}")
         finally:
             if conn:
                 conn.close()
@@ -60,7 +60,7 @@ class AIAdvisor:
         return leaders
 
     def _build_prompt(self, team, instruction: str = None, question: str = None) -> str:
-        """Erstellt den Prompt für das LLM, inklusive Team- und Arenaleiter-Daten."""
+        """Creates the prompt for the LLM, including team and gym leader data."""
         team_data = []
         for p in team.pokemon:
             team_data.append({
@@ -70,27 +70,26 @@ class AIAdvisor:
                 "moves": getattr(p, "moves", [])
             })
 
-        prompt = f"Du bist Professor Eich in Pokémon {self.game_version}.\n"
-        prompt += f"Aktuelles Team:\n{json.dumps(team_data, indent=2, ensure_ascii=False)}\n"
+        prompt = f"You are Professor Oak in Pokémon {self.game_version}.\n"
+        prompt += f"Current team:\n{json.dumps(team_data, indent=2, ensure_ascii=False)}\n"
 
-        # Arenaleiter-Daten hinzufügen
         gym_leaders = self._get_gym_leaders()
         if gym_leaders:
-            prompt += f"\nArenaleiter in dieser Version:\n{json.dumps(gym_leaders, indent=2, ensure_ascii=False)}\n"
+            prompt += f"\nGym Leaders in this version:\n{json.dumps(gym_leaders, indent=2, ensure_ascii=False)}\n"
 
         if instruction:
             prompt += f"\n{instruction}\n"
         if question:
-            prompt += f"\nFrage: {question}\n"
+            prompt += f"\nQuestion: {question}\n"
 
-        prompt += "- Antworte präzise, hilfreich und im Stil von Professor Eich."
+        prompt += "- Answer precisely, helpfully, and in the style of Professor Oak."
         return prompt
 
     def _score_response(self, text: str) -> int:
         score = len(text)
-        if "?" in text or "Fehler" in text:
+        if "?" in text or "Error" in text:
             score -= 50
-        keywords = ["Typ", "Moves", "Level", "Vorteil"]
+        keywords = ["Type", "Moves", "Level", "Advantage"]
         for kw in keywords:
             if kw.lower() in text.lower():
                 score += 10
@@ -98,7 +97,7 @@ class AIAdvisor:
 
     def _ensemble_chat(self, messages: list[dict]) -> str:
         if not self.llms:
-            return "⚠️ Kein aktiver LLM verfügbar – bitte API-Key in den Einstellungen hinzufügen."
+            return "⚠️ No active LLM available – please add API key in settings."
 
         results = []
         with ThreadPoolExecutor() as executor:
@@ -110,13 +109,13 @@ class AIAdvisor:
                     score = self._score_response(text)
                     results.append((llm_name, text, score))
                 except Exception as e:
-                    results.append((f"{futures[future].provider} Fehler", str(e), -1))
+                    results.append((f"{futures[future].provider} Error", str(e), -1))
 
         best = max(results, key=lambda x: x[2])
         return best[1]
 
     def suggest_team_improvements(self, team: Team) -> str:
-        instruction = "Analysiere das Team und schlage sinnvolle Verbesserungen vor (2–3 Absätze)."
+        instruction = "Analyze the team and suggest meaningful improvements (2–3 paragraphs)."
         messages = [{"role": "user", "content": self._build_prompt(team, instruction=instruction)}]
         return self._ensemble_chat(messages)
 

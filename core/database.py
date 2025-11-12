@@ -4,7 +4,7 @@ import json
 
 class Database:
     def __init__(self, db_path: str):
-        self.db_path = db_path  # ← Keine Verbindung hier!
+        self.db_path = db_path  # ← No connection here!
 
     def get_all_game_versions(self):
         conn = sqlite3.connect(self.db_path)
@@ -42,13 +42,13 @@ class Database:
                 )
             return None
         except Exception as e:
-            print(f"DB-Fehler bei {name}: {e}")
+            print(f"DB error for {name}: {e}")
             return None
         finally:
             conn.close()
 
     def get_moves_for_pokemon(self, name: str, version: str, level: int):
-        # Normalisiere die gesuchte Version
+        # Normalize the target version
         search_version = version.lower().replace(" ", "-")
 
         conn = sqlite3.connect(self.db_path)
@@ -57,7 +57,7 @@ class Database:
             cursor.execute("SELECT raw_data FROM pokemon WHERE name = ?", (name.lower(),))
             row = cursor.fetchone()
             if not row:
-                print(f"⚠️ Pokémon {name} nicht gefunden!")
+                print(f"⚠️ Pokémon {name} not found!")
                 return []
 
             data = json.loads(row[0])
@@ -70,22 +70,22 @@ class Database:
                     method_level = method.get("level", 999)
                     version_group = method.get("version_group", "")
 
-                    # Nur Level-Up-Moves (du kannst das erweitern!)
+                    # Only level-up moves (you can extend this!)
                     if method_type != "level-up":
                         continue
                     if method_level > level:
                         continue
 
-                    # Prüfe, ob die Version im version_group enthalten ist (case-insensitive)
+                    # Check if the version is contained in version_group (case-insensitive)
                     if search_version in version_group.lower():
                         valid_moves.append(move_name)
-                        break  # Nur einmal pro Move
+                        break  # Only once per move
 
-            #print(f"✅ Gefundene Moves für {name} (Version: {version}, Level: {level}): {valid_moves}")
+            #print(f"✅ Found moves for {name} (Version: {version}, Level: {level}): {valid_moves}")
             return valid_moves
 
         except Exception as e:
-            print(f"❌ Move-Fehler bei {name}: {e}")
+            print(f"❌ Move error for {name}: {e}")
             return []
         finally:
             conn.close()
@@ -104,16 +104,16 @@ class Database:
             locations = []
 
             for encounter in data.get("encounters", []):
-                location_name = encounter.get("location", "Unbekannter Ort")
+                location_name = encounter.get("location", "Unknown location")
                 for detail in encounter.get("version_details", []):
                     if detail.get("version", "").lower() == search_version:
                         locations.append(location_name)
                         break
 
-            return list(dict.fromkeys(locations))  # Reihenfolge erhalten
+            return list(dict.fromkeys(locations))  # Preserve order
 
         except Exception as e:
-            print(f"Fehler beim Laden der Encounters für {pokemon_name} ({version}): {e}")
+            print(f"Error loading encounters for {pokemon_name} ({version}): {e}")
             return []
         finally:
             conn.close()

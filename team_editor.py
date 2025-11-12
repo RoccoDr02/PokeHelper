@@ -20,7 +20,7 @@ class TeamEditor:
         self.menu_width = 180
         self.menu_open = False
 
-        # Team setzen
+        # Set team
         if team:
             self.team = team
             self.game_version = team.game_version
@@ -29,7 +29,7 @@ class TeamEditor:
                 self.team_data.append(None)
         else:
             self.game_version = game_version
-            self.team = Team(name="Unbenanntes Team", game_version=self.game_version)
+            self.team = Team(name="Unnamed Team", game_version=self.game_version)
             self.team_data = [None] * 6
 
         self.all_pokemon_names = [
@@ -47,17 +47,17 @@ class TeamEditor:
         self.root.geometry("1400x900")
         self.root.configure(bg="#333333")
 
-        # === GRID: Zwei Spalten (Menü + Team) ===
-        self.root.columnconfigure(0, weight=0)  # Menü: feste Breite
-        self.root.columnconfigure(1, weight=1)  # Team: dehnbar
+        # === GRID: Two columns (Menu + Team) ===
+        self.root.columnconfigure(0, weight=0)  # Menu: fixed width
+        self.root.columnconfigure(1, weight=1)  # Team: stretchable
         self.root.rowconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=0)  # AI-Eingabe
-        self.root.rowconfigure(2, weight=0)  # AI-Antwort
+        self.root.rowconfigure(1, weight=0)  # AI input
+        self.root.rowconfigure(2, weight=0)  # AI response
 
-        # === MENÜ-TOGGLE-BUTTON (oben links im Menü-Bereich) ===
+        # === MENU-TOGGLE-BUTTON (top left in menu area) ===
         self.toggle_menu_btn = tk.Button(
             self.root,
-            text="☰ Menü",
+            text="☰ Menu",
             command=self.toggle_menu,
             bg="#2a2a2a",
             fg="white",
@@ -67,13 +67,13 @@ class TeamEditor:
         )
         self.toggle_menu_btn.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
 
-        # === MENÜFRAME (Spalte 0, unter dem Button) ===
+        # === MENU FRAME (column 0, below button) ===
         self.menu_frame = tk.Frame(self.root, bg="#2a2a2a", width=self.menu_width)
         self.menu_frame.grid(row=0, column=0, sticky="ns", padx=10, pady=(50, 10))
         self.menu_frame.grid_propagate(False)
-        self.menu_frame.grid_remove()  # Versteckt bis geöffnet
+        self.menu_frame.grid_remove()  # Hidden until opened
 
-        # === TEAM CONTAINER (Spalte 1) ===
+        # === TEAM CONTAINER (column 1) ===
         self.team_container = tk.Frame(self.root, bg="#333333", height=820)
         self.team_container.grid(row=0, column=1, sticky="nsew", padx=(0, 10), pady=10)
         self.team_container.grid_propagate(False)
@@ -122,7 +122,7 @@ class TeamEditor:
                 level_entry = tk.Entry(level_row, width=5, font=("Helvetica", 9))
                 level_entry.pack(side="left", padx=(0, 4))
                 tk.Button(
-                    level_row, text="Suchen",
+                    level_row, text="Search",
                     command=lambda s=idx: self.change_pokemon(s),
                     font=("Helvetica", 8)
                 ).pack(side="left", padx=(0, 4))
@@ -136,7 +136,7 @@ class TeamEditor:
 
                 tk.Button(
                     input_frame,
-                    text="Löschen",
+                    text="Delete",
                     font=("Helvetica", 8),
                     bg="#ff0000",
                     fg="white",
@@ -167,7 +167,7 @@ class TeamEditor:
                 frame.rowconfigure(2, weight=1)
                 self.stats_labels.append(stats_label)
 
-        # === AI ADVISOR BEREICH (nur in Spalte 1) ===
+        # === AI ADVISOR AREA (only in column 1) ===
         self.advice_input_frame = tk.Frame(self.root, bg="#333333", height=40)
         self.advice_input_frame.grid(row=1, column=1, sticky="ew", padx=10, pady=(10, 5))
         self.advice_input_frame.grid_propagate(False)
@@ -209,46 +209,46 @@ class TeamEditor:
 
         self.root.bind("<Configure>", self.on_resize)
 
-    # === MENÜ-FUNKTIONEN ===
+    # === MENU FUNCTIONS ===
     def toggle_menu(self):
         if self.menu_open:
             self.menu_frame.grid_remove()
             self.menu_open = False
-            self.toggle_menu_btn.config(text="☰ Menü")
+            self.toggle_menu_btn.config(text="☰ Menu")
         else:
             self.menu_frame.grid()
             self.menu_open = True
-            self.toggle_menu_btn.config(text="✕ Schließen")
+            self.toggle_menu_btn.config(text="✕ Close")
 
         if not hasattr(self, '_menu_buttons_created'):
-            tk.Button(self.menu_frame, text="➕ Neues Team", command=self.new_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
-            tk.Button(self.menu_frame, text="📂 Team laden", command=self.load_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
-            tk.Button(self.menu_frame, text="💾 Team speichern", command=self.save_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
-            tk.Button(self.menu_frame, text="🔍 Prof. Eich", command=self.toggle_advisor, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
+            tk.Button(self.menu_frame, text="➕ New Team", command=self.new_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
+            tk.Button(self.menu_frame, text="📂 Load Team", command=self.load_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
+            tk.Button(self.menu_frame, text="💾 Save Team", command=self.save_team, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
+            tk.Button(self.menu_frame, text="🔍 Prof. Oak", command=self.toggle_advisor, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
             tk.Button(self.menu_frame, text="🤖 API Keys", command=self.open_api_keys, bg="#555555", fg="white", font=("Helvetica", 10), pady=5).pack(fill="x", pady=2)
             tk.Label(self.menu_frame, text="", bg="#2a2a2a").pack(expand=True)
-            tk.Button(self.menu_frame, text="❓ Hilfe", command=self.show_help, bg="#444444", fg="lightgray", font=("Helvetica", 9), pady=3).pack(side="bottom", fill="x", pady=5)
+            tk.Button(self.menu_frame, text="❓ Help", command=self.show_help, bg="#444444", fg="lightgray", font=("Helvetica", 9), pady=3).pack(side="bottom", fill="x", pady=5)
             self._menu_buttons_created = True
 
     def new_team(self):
         if any(p is not None for p in self.team_data):
-            if not messagebox.askyesno("Neues Team", "Möchtest du das aktuelle Team verwerfen?"):
+            if not messagebox.askyesno("New Team", "Do you want to discard the current team?"):
                 return
 
-        # Lade die Versionen AUS DER DATENBANK
+        # Load versions FROM THE DATABASE
         try:
             versions = self.db.get_all_game_versions()
         except Exception as e:
-            messagebox.showerror("Fehler", f"Konnte Spielversionen nicht laden:\n{e}")
+            messagebox.showerror("Error", f"Could not load game versions:\n{e}")
             return
 
-        # Sicherstellen, dass mindestens eine Version vorhanden ist
+        # Ensure at least one version exists
         if not versions:
             versions = ["platinum"]
 
-        # Erstelle ein neues Fenster für die Versionsauswahl
+        # Create a new window for version selection
         dialog = tk.Toplevel(self.root)
-        dialog.title("Neues Team – Spielversion")
+        dialog.title("New Team – Game Version")
         dialog.geometry("300x150")
         dialog.resizable(False, False)
         dialog.configure(bg="#333333")
@@ -257,7 +257,7 @@ class TeamEditor:
 
         tk.Label(
             dialog,
-            text="Wähle eine Spielversion:",
+            text="Select a game version:",
             bg="#333333",
             fg="white",
             font=("Helvetica", 10)
@@ -286,36 +286,36 @@ class TeamEditor:
         ).pack(pady=10)
 
     def load_team(self):
-        """Lädt ein gespeichertes Team und übernimmt dessen Spielversion."""
+        """Loads a saved team and adopts its game version."""
         saved_teams = Team.list_saved_teams()
         if not saved_teams:
-            messagebox.showinfo("Keine Teams", "Es sind keine gespeicherten Teams vorhanden.")
+            messagebox.showinfo("No Teams", "There are no saved teams.")
             return
 
         team_list_text = "\n".join(saved_teams)
         selected_team = simpledialog.askstring(
-            "Team laden",
-            f"Welches Team möchtest du laden?\n\nGespeicherte Teams:\n{team_list_text}"
+            "Load Team",
+            f"Which team do you want to load?\n\nSaved Teams:\n{team_list_text}"
         )
 
         if not selected_team:
             return
 
         if selected_team not in saved_teams:
-            messagebox.showerror("Fehler", f"Team '{selected_team}' existiert nicht.")
+            messagebox.showerror("Error", f"Team '{selected_team}' does not exist.")
             return
 
         try:
             team_obj = Team.load_from_file(selected_team)
             self.switch_team(team_obj)
         except Exception as e:
-            messagebox.showerror("Fehler beim Laden", str(e))
+            messagebox.showerror("Error Loading", str(e))
 
     def delete_pokemon(self, slot):
         if self.team_data[slot] is None:
             return
 
-        confirm = messagebox.askyesno("Pokémon löschen", f"Willst du {self.team_data[slot]["name"]} wirklich löschen?")
+        confirm = messagebox.askyesno("Delete Pokémon", f"Do you really want to delete {self.team_data[slot]["name"]}?")
         if not confirm:
             return
 
@@ -334,17 +334,17 @@ class TeamEditor:
         from core.llm_client import LLMClient, ENV_PATH
         import os
 
-        # Neues Fenster erstellen
+        # Create new window
         settings_win = tk.Toplevel()
-        settings_win.title("API-Key Einstellungen")
+        settings_win.title("API Key Settings")
         settings_win.geometry("420x260")
         settings_win.resizable(True, True)
-        settings_win.grab_set()  # macht das Fenster modal (blockiert Hauptfenster)
+        settings_win.grab_set()  # Makes the window modal (blocks main window)
         settings_win.minsize(420, 260)
 
-        ttk.Label(settings_win, text="🔧 API Keys verwalten", font=("Segoe UI", 13, "bold")).pack(pady=10)
+        ttk.Label(settings_win, text="🔧 Manage API Keys", font=("Segoe UI", 13, "bold")).pack(pady=10)
 
-        # Aktuelle Keys laden
+        # Load current keys
         config_values = dotenv_values(ENV_PATH)
         providers = {
             "OpenAI": "OPENAI_KEY",
@@ -357,7 +357,7 @@ class TeamEditor:
         frame = ttk.Frame(settings_win)
         frame.pack(padx=20, pady=10, fill="x")
 
-        # Einträge anzeigen
+        # Show entries
         for i, (provider_name, key_name) in enumerate(providers.items()):
             ttk.Label(frame, text=provider_name + ":", font=("Segoe UI", 10)).grid(row=i, column=0, sticky="w", pady=5)
 
@@ -369,7 +369,7 @@ class TeamEditor:
 
         frame.columnconfigure(1, weight=1)
 
-        # Speichern-Funktion
+        # Save function
         def save_keys():
             saved = []
             for provider_name, key_name in providers.items():
@@ -380,25 +380,25 @@ class TeamEditor:
                     saved.append(provider_name)
 
             if saved:
-                messagebox.showinfo("Gespeichert", f"API Keys für {', '.join(saved)} wurden gespeichert.")
+                messagebox.showinfo("Saved", f"API keys for {', '.join(saved)} have been saved.")
             else:
-                messagebox.showinfo("Keine Änderungen", "Keine API Keys wurden geändert.")
+                messagebox.showinfo("No Changes", "No API keys were changed.")
 
             settings_win.destroy()
 
-        # Buttons unten
-        ttk.Button(settings_win, text="💾 Speichern", command=save_keys).pack(pady=10)
-        ttk.Button(settings_win, text="Schließen", command=settings_win.destroy).pack()
+        # Buttons at bottom
+        ttk.Button(settings_win, text="💾 Save", command=save_keys).pack(pady=10)
+        ttk.Button(settings_win, text="Close", command=settings_win.destroy).pack()
 
 
 
     def show_help(self):
-        messagebox.showinfo("Hilfe", (
-            "• Gib einen Pokémon-Namen ein und drücke 'Suchen'\n"
-            "• Nutze Prof. Eich für Tipps zu deinem Team\n"
+        messagebox.showinfo("Help", (
+            "• Enter a Pokémon name and press 'Search'\n"
+            "• Use Prof. Oak for tips on your team\n"
         ))
 
-    # === BESTEHENDE METHODEN ===
+    # === EXISTING METHODS ===
     def toggle_advisor(self):
         if self.advice_input_frame.winfo_ismapped():
             self.advice_input_frame.grid_remove()
@@ -407,11 +407,11 @@ class TeamEditor:
             self.root.rowconfigure(0, weight=1)
             self.root.rowconfigure(1, weight=0)
             self.root.rowconfigure(2, weight=0)
-            self.set_answer("Team Tipps werden hier angezeigt")
+            self.set_answer("Team tips will be displayed here")
         else:
             self.advice_input_frame.grid()
             self.advice_frame.grid()
-            self.set_answer("Stelle eine Frage an Prof. Eich...")
+            self.set_answer("Ask a question to Prof. Oak...")
             self.advice_entry.focus_set()
             self.root.rowconfigure(0, weight=2)
             self.root.rowconfigure(1, weight=0)
@@ -423,10 +423,10 @@ class TeamEditor:
     def ask_ai_advisor(self):
         question = self.advice_entry.get().strip()
         if not question:
-            messagebox.showwarning("Leere Frage", "Bitte gib eine Frage ein.")
+            messagebox.showwarning("Empty Question", "Please enter a question.")
             return
         self.advice_entry.delete(0, tk.END)
-        self.set_answer("💡 Denke nach...")
+        self.set_answer("💡 Thinking...")
 
         def query_ai():
             try:
@@ -434,7 +434,7 @@ class TeamEditor:
                 advisor = AIAdvisor(db=self.db, game_version=self.game_version)
                 answer = advisor.ask_question(team, question)
             except Exception as e:
-                answer = f"Fehler: {e}"
+                answer = f"Error: {e}"
             self.root.after(0, lambda: self.set_answer(answer))
 
         threading.Thread(target=query_ai, daemon=True).start()
@@ -457,15 +457,15 @@ class TeamEditor:
                 level = 1
 
             try:
-                # Pokémon vom Service holen (berechnet alles: types, strengths, weaknesses)
+                # Get Pokémon from service (calculates everything: types, strengths, weaknesses)
                 pokemon_obj = self.pokemon_service.fetch_pokemon(
                     name=name, level=level, game_version=self.game_version
                 )
 
-                # Team-Daten speichern
+                # Save team data
                 self.team_data[slot] = pokemon_obj.to_dict()
 
-                # Team-Objekt aktualisieren
+                # Update team object
                 if len(self.team.pokemon) > slot:
                     self.team.pokemon[slot] = pokemon_obj
                 else:
@@ -486,7 +486,7 @@ class TeamEditor:
         self.img_labels[slot].configure(image="")
         self.img_labels[slot].image = None
 
-    # === Anzeige aktualisieren ===
+    # === Update display ===
     def update_team_display(self):
         for idx, frame in enumerate(self.team_frames):
             if frame.winfo_width() <= 1 or frame.winfo_height() <= 1:
@@ -521,14 +521,14 @@ class TeamEditor:
                 self.img_labels[idx].configure(image=img_tk)
                 self.img_labels[idx].image = img_tk
 
-                # Typen, Stärken, Schwächen direkt aus dem Dictionary
+                # Types, strengths, weaknesses directly from the dictionary
                 types = [t.title() for t in data.get("types", [])]
                 strengths = [s.title() for s in data.get("strengths", [])]
                 weaknesses = [w.title() for w in data.get("weaknesses", [])]
                 moves = [str(m).title() for m in data.get("moves", [])]
                 stats_text = (
                     f"Level: {data.get('level', 100)}\n"
-                    f"Typen: {', '.join(types)}\n"
+                    f"Types: {', '.join(types)}\n"
                     f"Moves: {', '.join(moves)}\n"
                     f"Strengths: {', '.join(strengths) if strengths else '-'}\n"
                     f"Weaknesses: {', '.join(weaknesses) if weaknesses else '-'}"
@@ -558,11 +558,11 @@ class TeamEditor:
 
     def on_close(self):
         if any(self.team_data):
-            if tk.messagebox.askyesno("Team speichern?", "Möchtest du dein aktuelles Team speichern, bevor das Fenster geschlossen wird?"):
+            if tk.messagebox.askyesno("Save Team?", "Do you want to save your current team before closing the window?"):
                 try:
                     self.team.auto_save()
                 except Exception as e:
-                    tk.messagebox.showerror("Fehler beim Speichern", str(e))
+                    tk.messagebox.showerror("Error Saving", str(e))
         self.root.destroy()
 
     def show_pokemon_details(self, slot):
@@ -575,7 +575,7 @@ class TeamEditor:
 
         data = self.team_data[slot]
         if not data:
-            tk.messagebox.showinfo("Keine Daten", "Dieses Pokémon ist noch leer.")
+            tk.messagebox.showinfo("No Data", "This Pokémon is still empty.")
             return
 
         try:
@@ -591,27 +591,27 @@ class TeamEditor:
                 self.team.pokemon[slot] = full_pokemon
 
         except Exception as e:
-            tk.messagebox.showerror("Fehler", f"Pokémon konnte nicht geladen werden:\n{e}")
+            tk.messagebox.showerror("Error", f"Could not load Pokémon:\n{e}")
             return
 
         data = self.team_data[slot]
         popup = tk.Toplevel(self.root)
-        popup.title(f"{data.get('name', 'Unbekannt').title()} – Details")
+        popup.title(f"{data.get('name', 'Unknown').title()} – Details")
         popup.geometry("400x500")
         popup.resizable(False, False)
         popup.configure(bg="#333333")
         popup.transient(self.root)
 
-        # Fenster für diesen Slot merken
+        # Remember window for this slot
         self.details_windows[slot] = popup
 
-        # Beim Schließen wieder sauber entfernen
+        # Clean up when closing
         popup.protocol("WM_DELETE_WINDOW", lambda s=slot: self._close_details(s))
 
-        # ---------- UI-Code ----------
+        # ---------- UI CODE ----------
 
         types = [t.title() for t in data.get("types", [])]
-        tk.Label(popup, text=f"Typen: {', '.join(types)}", bg="#333333", fg="white",
+        tk.Label(popup, text=f"Types: {', '.join(types)}", bg="#333333", fg="white",
                  font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=5)
 
         strengths = [s.title() for s in data.get("strengths", [])]
@@ -621,18 +621,18 @@ class TeamEditor:
         tk.Label(popup, text=f"Weaknesses: {', '.join(weaknesses) if weaknesses else '-'}", bg="#333333", fg="red",
                  font=("Helvetica", 10)).pack(anchor="w", padx=10, pady=2)
 
-        tk.Label(popup, text="Nächste Level-Up Moves:", bg="#333333", fg="white",
+        tk.Label(popup, text="Next Level-Up Moves:", bg="#333333", fg="white",
                  font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=(10, 0))
 
         level_up_moves = data.get("level_up_moves", [])
         current_level = data.get("level", 1)
         future_moves = [m for m in sorted(level_up_moves, key=lambda x: x["level"]) if m["level"] > current_level][:5]
         moves_text = "\n".join([f"{m['name'].title()} – Level {m['level']}" for m in future_moves]) \
-            if future_moves else "Keine Level-Up-Moves mehr verfügbar."
+            if future_moves else "No more level-up moves available."
         tk.Label(popup, text=moves_text, bg="#333333", fg="lightgray",
                  justify="left", font=("Helvetica", 10)).pack(anchor="w", padx=20)
 
-        tk.Label(popup, text="Fundorte:", bg="#333333", fg="white",
+        tk.Label(popup, text="Locations:", bg="#333333", fg="white",
                  font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=(10, 0))
 
         locations = data.get("locations", [])
@@ -651,26 +651,26 @@ class TeamEditor:
         label.pack(anchor="w", padx=20, pady=5, fill="x")
 
     def _close_details(self, slot):
-        """Wird aufgerufen, wenn das Fenster eines Slots geschlossen wird"""
+        """Called when a slot's window is closed"""
         if slot in self.details_windows:
             self.details_windows[slot].destroy()
             del self.details_windows[slot]
 
 
     def switch_team(self, new_team):
-        """Wechselt zu einem neuen Team und übernimmt dessen Spielversion."""
+        """Switches to a new team and adopts its game version."""
         if any(p is not None for p in self.team_data):
-            if messagebox.askyesno("Team speichern",
-                                   "Möchtest du dein aktuelles Team speichern, bevor das Team gewechselt wird?"):
+            if messagebox.askyesno("Save Team",
+                                   "Do you want to save your current team before switching teams?"):
                 self.team.auto_save()
 
-        # 🔥 Spielversion sofort aktualisieren
+        # 🔥 Update game version immediately
         self.game_version = new_team.game_version
         self.team = new_team
         self.load_team_data(new_team)
         self.update_team_display()
 
-        # Optional: Fenstertitel aktualisieren
+        # Optional: Update window title
         self.root.title(f"Pokémon Team – {self.game_version.title()}")
 
     def load_team_data(self, team):
@@ -691,7 +691,7 @@ class TeamEditor:
                     self.level_entries[idx].insert(0, str(full_pokemon.level))
 
                 except Exception as e:
-                    print(f"Fehler beim Laden von Pokémon {p.name}: {e}")
+                    print(f"Error loading Pokémon {p.name}: {e}")
 
                     self.team_data[idx] = {
                         "name": p.name,
@@ -702,39 +702,39 @@ class TeamEditor:
                     }
 
     def save_team(self):
-        team_name = simpledialog.askstring("Team speichern", "Name des Teams:")
+        team_name = simpledialog.askstring("Save Team", "Team name:")
         if not team_name:
             return
         self.team.name = team_name
         success = self.team.save_to_file(team_name)
         if success:
-            messagebox.showinfo("Gespeichert", f"Team '{team_name}' wurde gespeichert!")
+            messagebox.showinfo("Saved", f"Team '{team_name}' has been saved!")
         else:
-            messagebox.showerror("Fehler", f"Speichern fehlgeschlagen für Team '{team_name}'!")
+            messagebox.showerror("Error", f"Failed to save team '{team_name}'!")
 
     def _on_pokemon_selected(self, slot, name):
         self.name_entries[slot].delete(0, "end")
         self.name_entries[slot].insert(0, name)
 
     def _create_new_team_with_version(self, version):
-        """Erstellt ein neues Team mit der gewählten Version."""
-        self.team = Team(name="Unbenanntes Team", game_version=version)
+        """Creates a new team with the selected version."""
+        self.team = Team(name="Unnamed Team", game_version=version)
         self.game_version = version
         self.team_data = [None] * 6
 
-        # UI leeren
+        # Clear UI
         for entry in self.name_entries:
             entry.delete(0, tk.END)
         for entry in self.level_entries:
             entry.delete(0, tk.END)
 
-        # Fenstertitel aktualisieren
+        # Update window title
         self.root.title(f"Pokémon Team – {self.game_version.title()}")
 
         self.update_team_display()
 
 
-# === AUTOCOMPLETE (unverändert) ===
+# === AUTOCOMPLETE (unchanged) ===
 class AutocompleteEntry:
     def __init__(self, entry, all_names, on_select=None):
         self.entry = entry

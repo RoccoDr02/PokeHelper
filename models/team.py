@@ -6,17 +6,17 @@ class Team:
     def __init__(self, name: str, game_version: str = "platinum", pokemon=None):
         self.name = name
         self.game_version = game_version
-        self.pokemon = pokemon or []  # Liste von Pokemon-Objekten
+        self.pokemon = pokemon or []  # List of Pokemon objects
 
     def add_pokemon(self, pokemon):
         if len(self.pokemon) < 6:
             self.pokemon.append(pokemon)
 
-    # ===== JSON Save / Load Funktionen =====
-    SAVE_FOLDER = "teams"  # Ordner für alle Teams
+    # ===== JSON Save / Load Functions =====
+    SAVE_FOLDER = "teams"  # Folder for all teams
 
     def save_to_file(self, team_name: str = None):
-        """Speichert das Team als JSON im teams/ Ordner."""
+        """Saves the team as JSON in the teams/ folder."""
         if not os.path.exists(self.SAVE_FOLDER):
             os.makedirs(self.SAVE_FOLDER)
 
@@ -29,20 +29,20 @@ class Team:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:
-            print(f"Fehler beim Speichern des Teams '{name_to_save}': {e}")
+            print(f"Error saving team '{name_to_save}': {e}")
             return False
 
     @classmethod
     def load_from_file(cls, team_name: str):
-        """Lädt ein Team aus dem teams/ Ordner anhand des Namens."""
+        """Loads a team from the teams/ folder by name."""
         filepath = os.path.join(cls.SAVE_FOLDER, f"{team_name}.json")
         if not os.path.exists(filepath):
-            raise FileNotFoundError(f"Team '{team_name}' existiert nicht.")
+            raise FileNotFoundError(f"Team '{team_name}' does not exist.")
 
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # Erstelle Team-Objekt
+        # Create team object
         return cls.from_dict_list(
             data_list=data.get("pokemon", []),
             name=data.get("name", team_name),
@@ -51,7 +51,7 @@ class Team:
 
     @classmethod
     def list_saved_teams(cls):
-        """Gibt eine Liste aller gespeicherten Team-Dateien ohne .json zurück."""
+        """Returns a list of all saved team files without .json extension."""
         if not os.path.exists(cls.SAVE_FOLDER):
             return []
         files = [f[:-5] for f in os.listdir(cls.SAVE_FOLDER) if f.endswith(".json")]
@@ -59,7 +59,7 @@ class Team:
     # ========================================
 
     def to_dict(self):
-        """Exportiert das Team als Dict für JSON-Speicherung"""
+        """Exports the team as a dict for JSON storage"""
         return {
             "name": self.name,
             "game_version": self.game_version,
@@ -67,8 +67,8 @@ class Team:
         }
 
     @classmethod
-    def from_dict_list(cls, data_list, name: str = "Unbenanntes Team", game_version: str = "platinum"):
-        """Erstellt ein Team aus einer Liste von Pokémon-Dictionaries"""
+    def from_dict_list(cls, data_list, name: str = "Unnamed Team", game_version: str = "platinum"):
+        """Creates a team from a list of Pokémon dictionaries"""
         pokemon_objects = []
         for d in data_list:
             if d:
@@ -77,15 +77,15 @@ class Team:
 
     def auto_save(self):
         """
-        Speichert das Team automatisch, ohne Dialoge oder Benutzereingriff.
-        Gibt True bei Erfolg zurück.
+        Automatically saves the team without dialogs or user input.
+        Returns True on success.
         """
         try:
             self.save_to_file(self.name)
-            print(f"[AutoSave] Team '{self.name}' gespeichert.")
+            print(f"[AutoSave] Team '{self.name}' saved.")
             return True
         except Exception as e:
-            print(f"[AutoSave] Fehler: {e}")
+            print(f"[AutoSave] Error: {e}")
             return False
 
 
@@ -104,7 +104,7 @@ class Pokemon:
     @classmethod
     def from_dict(cls, d: dict):
         return cls(
-            name=d.get("name", "unbekannt"),
+            name=d.get("name", "unknown"),
             level=d.get("level", 100),
             types=d.get("types", []),
             moves=d.get("moves", []),
